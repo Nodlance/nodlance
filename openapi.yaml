@@ -1,0 +1,61 @@
+openapi: 3.1.0
+info:
+  title: Nodlance API
+  version: 0.1.0
+  description: Initial health/version API scaffold. Database management endpoints are not implemented yet.
+servers:
+  - url: http://localhost:8080
+paths:
+  /health/live:
+    get:
+      summary: Process liveness
+      operationId: getLiveness
+      responses:
+        '200':
+          description: Process is responding
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /health/ready:
+    get:
+      summary: Current scaffold readiness
+      description: Must check required dependencies after they are added to the application.
+      operationId: getReadiness
+      responses:
+        '200':
+          description: Current scaffold is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/v1/version:
+    get:
+      summary: Version and implementation stage
+      operationId: getVersion
+      responses:
+        '200':
+          description: Version information
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [name, version, stage]
+                properties:
+                  name:
+                    type: string
+                    const: Nodlance
+                  version:
+                    type: string
+                  stage:
+                    type: string
+                    const: scaffold
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, ready]
