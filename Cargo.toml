@@ -8,6 +8,7 @@ members = [
     "crates/nodlance-adapter-postgres",
     "crates/nodlance-adapter-mysql",
     "crates/nodlance-agent",
+    "crates/nodlance-worker",
 ]
 
 [workspace.package]
@@ -22,9 +23,11 @@ argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
 jsonwebtoken = "9"
+hex = "0.4"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "mysql", "uuid", "chrono", "migrate", "json"] }
 sysinfo = "0.33"
 thiserror = "2"
@@ -38,6 +41,7 @@ nodlance-agent = { path = "crates/nodlance-agent" }
 nodlance-auth = { path = "crates/nodlance-auth" }
 nodlance-db = { path = "crates/nodlance-db" }
 nodlance-domain = { path = "crates/nodlance-domain" }
+nodlance-worker = { path = "crates/nodlance-worker" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

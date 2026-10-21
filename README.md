@@ -5,7 +5,7 @@
 
 Nodlance is an open-source platform providing a self-hosted control plane for discovering, monitoring, and safely operating database clusters across heterogeneous environments (Linux bare-metal, VMs, containers, and Kubernetes).
 
-> **Status: Stage 1 — Inventory & Enrollment.** The control plane supports PostgreSQL metadata persistence, RBAC-protected authentication, host inventory management, agent enrollment/revocation, and append-only audit trails.
+> **Status: Stage 3 — Backup Workflow & Durable Jobs.** The control plane supports PostgreSQL metadata persistence, RBAC-protected authentication, host inventory management, agent enrollment/revocation, telemetry monitoring, cluster topology views, durable leased job execution, and verified database backups with restore drills.
 
 ## Project principles
 
@@ -25,9 +25,10 @@ nodlance/
 │   ├── nodlance-domain/            # Shared domain entities, vocabulary, and repository ports
 │   ├── nodlance-db/                # PostgreSQL storage, connection pool, migrations, repositories
 │   ├── nodlance-auth/              # Argon2 password hashing, JWT tokens, RBAC context
-│   ├── nodlance-adapter-postgres/  # PostgreSQL health, recovery, and replication probe adapter
-│   ├── nodlance-adapter-mysql/     # MySQL/MariaDB health and replica status probe adapter
+│   ├── nodlance-adapter-postgres/  # PostgreSQL health, replication probe, and backup adapter
+│   ├── nodlance-adapter-mysql/     # MySQL/MariaDB health, replica status, and backup adapter
 │   ├── nodlance-agent/             # Lightweight host monitoring daemon binary
+│   ├── nodlance-worker/            # Background worker daemon running leased operations
 │   └── nodlance-api/               # Axum HTTP API, middleware, route handlers
 ├── assets/                         # SVG icons, logo, and brand assets
 ├── docs/                           # PRD, architecture, threat model, ADRs, roadmap
@@ -105,6 +106,13 @@ This starts PostgreSQL and the Nodlance API control plane with automatic databas
 | `GET` | `/api/v1/clusters/{id}` | `host:read` | Get cluster details |
 | `POST` | `/api/v1/clusters/{id}/nodes` | `host:write` | Register database node into cluster |
 | `GET` | `/api/v1/clusters/{id}/topology` | `host:read` | Observed cluster replication topology view |
+| `POST` | `/api/v1/clusters/{id}/backups` | `host:write` | Trigger backup workflow for cluster |
+| `GET` | `/api/v1/clusters/{id}/backups` | `host:read` | List backup artifacts for cluster |
+| `GET` | `/api/v1/backups/{id}` | `host:read` | Get backup artifact details |
+| `POST` | `/api/v1/backups/{id}/verify` | `host:write` | Trigger restore validation drill for backup |
+| `GET` | `/api/v1/backups/{id}/drills/latest` | `host:read` | Get latest validation drill result |
+| `GET` | `/api/v1/jobs` | `audit:read` / `host:read` | List durable background jobs |
+| `GET` | `/api/v1/jobs/{id}` | `audit:read` / `host:read` | Get durable job details by ID |
 | `GET` | `/api/v1/alerts/rules` | `audit:read` | List alert evaluation rules |
 | `GET` | `/api/v1/alerts` | `audit:read` | List active alert incidents |
 | `POST` | `/api/v1/alerts/{id}/acknowledge` | `host:write` | Acknowledge active alert incident |

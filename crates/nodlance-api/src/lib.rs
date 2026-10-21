@@ -87,6 +87,27 @@ pub fn build_app(state: AppState) -> Router {
         )
         // Audit log
         .route("/api/v1/audit", get(routes::audit::list_audit_events))
+        // Backups & Restores
+        .route(
+            "/api/v1/clusters/{id}/backups",
+            post(routes::backups::trigger_cluster_backup)
+                .get(routes::backups::list_cluster_backups),
+        )
+        .route(
+            "/api/v1/backups/{id}",
+            get(routes::backups::get_backup_details),
+        )
+        .route(
+            "/api/v1/backups/{id}/verify",
+            post(routes::backups::verify_backup),
+        )
+        .route(
+            "/api/v1/backups/{id}/drills/latest",
+            get(routes::backups::get_latest_drill),
+        )
+        // Durable Jobs
+        .route("/api/v1/jobs", get(routes::jobs::list_jobs))
+        .route("/api/v1/jobs/{id}", get(routes::jobs::get_job))
         .with_state(state)
 }
 
@@ -172,6 +193,37 @@ mod tests {
         let app = build_app(AppState::new_test());
         let request = Request::builder()
             .uri("/api/v1/clusters")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn jobs_endpoint_requires_authorization() {
+        let app = build_app(AppState::new_test());
+        let request = Request::builder()
+            .uri("/api/v1/jobs")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn backups_endpoint_requires_authorization() {
+        let app = build_app(AppState::new_test());
+        let cluster_id = uuid::Uuid::now_v7();
+        let request = Request::builder()
+            .uri(format!("/api/v1/clusters/{cluster_id}/backups"))
             .body(Body::empty())
             .unwrap_or_else(|error| panic!("failed to build request: {error}"));
         let response = app

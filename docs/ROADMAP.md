@@ -25,9 +25,9 @@
 
 ## Stage 3 — backup workflow
 
-- [ ] Persistent worker/scheduler and operation state machine
-- [ ] Backup adapters with explicit engine/version compatibility
-- [ ] Checksums, retention, restore drills and verification report
+- [x] Persistent worker/scheduler and operation state machine
+- [x] Backup adapters with explicit engine/version compatibility
+- [x] Checksums, retention, restore drills and verification report
 
 ## Stage 4 — guarded provisioning and providers
 

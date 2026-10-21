@@ -7,11 +7,13 @@ use crate::{
     agent::AgentIdentity,
     alert::{AlertIncident, AlertRule, MaintenanceWindow, NewMaintenanceWindow},
     audit::{AuditEvent, AuditFilter, NewAuditEvent},
+    backup::{BackupArtifact, NewBackupArtifact, RestoreValidationDrill},
     cluster::{Cluster, DatabaseNode, NewCluster, NewDatabaseNode},
     engine::{NodeHealth, NodeRole},
     error::DomainError,
     heartbeat::AgentHeartbeat,
     host::{Host, HostFilter, NewHost, UpdateHost},
+    job::{Job, JobAttempt, NewJob},
     metrics::HostMetrics,
     observation::{ClusterTopology, NodeObservation},
     user::{NewUser, Permission, Role, User},
@@ -224,4 +226,78 @@ pub trait AlertRepository: Send + Sync {
         resource_type: &str,
         resource_id: Option<Uuid>,
     ) -> impl Future<Output = Result<bool, DomainError>> + Send;
+}
+
+/// Port for durable background job execution, leasing, and retries.
+pub trait JobRepository: Send + Sync {
+    fn enqueue_job(
+        &self,
+        new_job: &NewJob,
+    ) -> impl Future<Output = Result<Job, DomainError>> + Send;
+
+    fn acquire_lease(
+        &self,
+        lease_owner: &str,
+        lease_duration_secs: u64,
+    ) -> impl Future<Output = Result<Option<Job>, DomainError>> + Send;
+
+    fn record_attempt_start(
+        &self,
+        job_id: Uuid,
+        attempt_number: i32,
+    ) -> impl Future<Output = Result<JobAttempt, DomainError>> + Send;
+
+    fn complete_job(
+        &self,
+        job_id: Uuid,
+        attempt_id: Uuid,
+        result: serde_json::Value,
+    ) -> impl Future<Output = Result<Job, DomainError>> + Send;
+
+    fn fail_job(
+        &self,
+        job_id: Uuid,
+        attempt_id: Uuid,
+        error_message: &str,
+        can_retry: bool,
+    ) -> impl Future<Output = Result<Job, DomainError>> + Send;
+
+    fn get_job_by_id(
+        &self,
+        job_id: Uuid,
+    ) -> impl Future<Output = Result<Option<Job>, DomainError>> + Send;
+
+    fn list_jobs(&self, limit: i64) -> impl Future<Output = Result<Vec<Job>, DomainError>> + Send;
+}
+
+/// Port for backup artifacts, checksums, retention, and verification drills.
+pub trait BackupRepository: Send + Sync {
+    fn record_backup(
+        &self,
+        artifact: &NewBackupArtifact,
+    ) -> impl Future<Output = Result<BackupArtifact, DomainError>> + Send;
+
+    fn get_backup_by_id(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<Option<BackupArtifact>, DomainError>> + Send;
+
+    fn list_backups_by_cluster(
+        &self,
+        cluster_id: Uuid,
+    ) -> impl Future<Output = Result<Vec<BackupArtifact>, DomainError>> + Send;
+
+    fn record_restore_drill(
+        &self,
+        backup_id: Uuid,
+        is_valid: bool,
+        report: serde_json::Value,
+    ) -> impl Future<Output = Result<RestoreValidationDrill, DomainError>> + Send;
+
+    fn get_latest_drill(
+        &self,
+        backup_id: Uuid,
+    ) -> impl Future<Output = Result<Option<RestoreValidationDrill>, DomainError>> + Send;
+
+    fn cleanup_expired_backups(&self) -> impl Future<Output = Result<u64, DomainError>> + Send;
 }

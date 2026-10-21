@@ -1009,9 +1009,11 @@ name = "nodlance-adapter-mysql"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "hex",
  "nodlance-domain",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
  "thiserror",
  "tracing",
@@ -1023,9 +1025,11 @@ name = "nodlance-adapter-postgres"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "hex",
  "nodlance-domain",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
  "thiserror",
  "tracing",
@@ -1103,6 +1107,24 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "nodlance-worker"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "nodlance-adapter-mysql",
+ "nodlance-adapter-postgres",
+ "nodlance-db",
+ "nodlance-domain",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
  "uuid",
 ]
 
