@@ -2,13 +2,13 @@ openapi: 3.1.0
 info:
   title: Nodlance API
   version: 0.1.0
-  description: Initial health/version API scaffold. Database management endpoints are not implemented yet.
+  description: Nodlance control plane API for database operations, host inventory, and agent enrollment.
 servers:
   - url: http://localhost:8080
 paths:
   /health/live:
     get:
-      summary: Process liveness
+      summary: Process liveness probe
       operationId: getLiveness
       responses:
         '200':
@@ -19,12 +19,18 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
   /health/ready:
     get:
-      summary: Current scaffold readiness
-      description: Must check required dependencies after they are added to the application.
+      summary: Process readiness probe
+      description: Verifies control plane readiness including database connectivity.
       operationId: getReadiness
       responses:
         '200':
-          description: Current scaffold is ready
+          description: Control plane is ready to serve traffic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Database connection is unavailable
           content:
             application/json:
               schema:
@@ -39,18 +45,375 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [name, version, stage]
-                properties:
-                  name:
-                    type: string
-                    const: Nodlance
-                  version:
-                    type: string
-                  stage:
-                    type: string
-                    const: scaffold
+                $ref: '#/components/schemas/VersionResponse'
+
+  /api/v1/auth/login:
+    post:
+      summary: Authenticate user credentials
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials or inactive account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users:
+    get:
+      summary: List users
+      operationId: listUsers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of user accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Create new user
+      operationId: createUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUser'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/hosts:
+    get:
+      summary: List hosts
+      operationId: listHosts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, decommissioned]
+        - name: hostname_contains
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of hosts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Host'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Register a new host
+      operationId: createHost
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewHost'
+      responses:
+        '201':
+          description: Host created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Host'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/hosts/{id}:
+    get:
+      summary: Get host by ID
+      operationId: getHost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Host details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Host'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update host
+      operationId: updateHost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateHost'
+      responses:
+        '200':
+          description: Host updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Host'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Decommission host
+      operationId: decommissionHost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Host decommissioned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Host'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/hosts/{id}/enroll:
+    post:
+      summary: Enroll agent identity on host
+      operationId: enrollAgent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrollmentRequest'
+      responses:
+        '201':
+          description: Agent enrolled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentIdentity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/hosts/{id}/revoke:
+    post:
+      summary: Revoke active agent on host
+      operationId: revokeAgent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Agent revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentIdentity'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/audit:
+    get:
+      summary: Query audit events
+      operationId: listAuditEvents
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: actor_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: resource_type
+          in: query
+          schema:
+            type: string
+        - name: resource_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of audit events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditEvent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Bad request / validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Resource conflict / unique violation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
   schemas:
     HealthResponse:
       type: object
@@ -58,4 +421,237 @@ components:
       properties:
         status:
           type: string
-          enum: [ok, ready]
+
+    VersionResponse:
+      type: object
+      required: [name, version, stage]
+      properties:
+        name:
+          type: string
+          example: Nodlance
+        version:
+          type: string
+          example: 0.1.0
+        stage:
+          type: string
+          example: inventory_and_enrollment
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      required: [token, token_type, expires_in, user]
+      properties:
+        token:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+          example: 86400
+        user:
+          $ref: '#/components/schemas/UserInfo'
+
+    UserInfo:
+      type: object
+      required: [id, username, is_active, permissions]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        display_name:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        permissions:
+          type: array
+          items:
+            type: string
+
+    User:
+      type: object
+      required: [id, username, is_active, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        display_name:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    NewUser:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        display_name:
+          type: string
+
+    Host:
+      type: object
+      required: [id, hostname, labels, status, created_at, updated_at, created_by]
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostname:
+          type: string
+        ip_address:
+          type: string
+          nullable: true
+        os_family:
+          type: string
+          nullable: true
+        os_version:
+          type: string
+          nullable: true
+        labels:
+          type: object
+        status:
+          type: string
+          enum: [active, inactive, decommissioned]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+          format: uuid
+
+    NewHost:
+      type: object
+      required: [hostname]
+      properties:
+        hostname:
+          type: string
+        ip_address:
+          type: string
+        os_family:
+          type: string
+        os_version:
+          type: string
+        labels:
+          type: object
+
+    UpdateHost:
+      type: object
+      properties:
+        hostname:
+          type: string
+        ip_address:
+          type: string
+        os_family:
+          type: string
+        os_version:
+          type: string
+        labels:
+          type: object
+        status:
+          type: string
+          enum: [active, inactive, decommissioned]
+
+    AgentIdentity:
+      type: object
+      required: [id, host_id, fingerprint, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        host_id:
+          type: string
+          format: uuid
+        fingerprint:
+          type: string
+        status:
+          type: string
+          enum: [pending, enrolled, revoked]
+        enrolled_at:
+          type: string
+          format: date-time
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+        revoked_by:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    EnrollmentRequest:
+      type: object
+      required: [fingerprint]
+      properties:
+        fingerprint:
+          type: string
+
+    AuditEvent:
+      type: object
+      required: [id, timestamp, actor_id, action, resource_type]
+      properties:
+        id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        actor_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        resource_type:
+          type: string
+        resource_id:
+          type: string
+          format: uuid
+          nullable: true
+        details:
+          type: object
+          nullable: true
+        source_ip:
+          type: string
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string

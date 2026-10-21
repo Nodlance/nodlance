@@ -1,0 +1,20 @@
+[package]
+name = "nodlance-auth"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+argon2.workspace = true
+chrono.workspace = true
+jsonwebtoken.workspace = true
+nodlance-domain.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

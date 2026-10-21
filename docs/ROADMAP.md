@@ -10,10 +10,10 @@
 
 ## Stage 1 — inventory and enrollment
 
-- [ ] PostgreSQL metadata schema and migrations
-- [ ] User identity and RBAC
-- [ ] Host inventory and agent enrollment/revocation
-- [ ] Durable audit events
+- [x] PostgreSQL metadata schema and migrations
+- [x] User identity and RBAC
+- [x] Host inventory and agent enrollment/revocation
+- [x] Durable audit events
 
 ## Stage 2 — monitoring
 

@@ -1,9 +1,9 @@
 FROM rust:1-bookworm AS builder
 WORKDIR /src
 COPY Cargo.toml Cargo.toml
-COPY rust-toolchain.toml rust-toolchain.toml
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY crates crates
-RUN cargo build --release -p nodlance-api
+RUN cargo build --release --locked -p nodlance-api
 
 FROM debian:bookworm-slim AS runtime
 RUN useradd --system --uid 10001 --create-home nodlance \
