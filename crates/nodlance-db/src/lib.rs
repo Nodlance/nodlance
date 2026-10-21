@@ -1,14 +1,22 @@
 //! PostgreSQL metadata storage layer for Nodlance.
 
 pub mod agent_repo;
+pub mod alert_repo;
 pub mod audit_repo;
+pub mod cluster_repo;
 pub mod error;
+pub mod heartbeat_repo;
 pub mod host_repo;
+pub mod observation_repo;
 pub mod user_repo;
 
 pub use agent_repo::PgAgentRepository;
+pub use alert_repo::PgAlertRepository;
 pub use audit_repo::PgAuditRepository;
+pub use cluster_repo::PgClusterRepository;
+pub use heartbeat_repo::PgHeartbeatRepository;
 pub use host_repo::PgHostRepository;
+pub use observation_repo::PgObservationRepository;
 pub use user_repo::PgUserRepository;
 
 use nodlance_domain::{DomainError, UserRepository};

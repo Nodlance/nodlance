@@ -17,11 +17,11 @@
 
 ## Stage 2 — monitoring
 
-- [ ] Rust agent heartbeat and host metrics
-- [ ] PostgreSQL health and replication adapter
-- [ ] MySQL/MariaDB health and replication adapter
-- [ ] Metrics store integration and topology view
-- [ ] Alerts and maintenance windows
+- [x] Rust agent heartbeat and host metrics
+- [x] PostgreSQL health and replication adapter
+- [x] MySQL/MariaDB health and replication adapter
+- [x] Metrics store integration and topology view
+- [x] Alerts and maintenance windows
 
 ## Stage 3 — backup workflow
 

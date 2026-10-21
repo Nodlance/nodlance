@@ -5,6 +5,9 @@ members = [
     "crates/nodlance-db",
     "crates/nodlance-auth",
     "crates/nodlance-api",
+    "crates/nodlance-adapter-postgres",
+    "crates/nodlance-adapter-mysql",
+    "crates/nodlance-agent",
 ]
 
 [workspace.package]
@@ -19,14 +22,19 @@ argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
 jsonwebtoken = "9"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "migrate", "json"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "mysql", "uuid", "chrono", "migrate", "json"] }
+sysinfo = "0.33"
 thiserror = "2"
-tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal"] }
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "time"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v7", "serde"] }
+nodlance-adapter-mysql = { path = "crates/nodlance-adapter-mysql" }
+nodlance-adapter-postgres = { path = "crates/nodlance-adapter-postgres" }
+nodlance-agent = { path = "crates/nodlance-agent" }
 nodlance-auth = { path = "crates/nodlance-auth" }
 nodlance-db = { path = "crates/nodlance-db" }
 nodlance-domain = { path = "crates/nodlance-domain" }

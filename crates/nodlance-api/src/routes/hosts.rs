@@ -6,9 +6,11 @@ use axum::{
     http::StatusCode,
 };
 use nodlance_domain::{
-    AgentIdentity, AgentRepository, AuditRepository, DomainError, EnrollmentRequest, Host,
-    HostFilter, HostRepository, NewAuditEvent, NewHost, Permission, UpdateHost,
+    AgentHeartbeat, AgentIdentity, AgentRepository, AuditRepository, DomainError,
+    EnrollmentRequest, HeartbeatRepository, Host, HostFilter, HostRepository, NewAuditEvent,
+    NewHost, Permission, UpdateHost,
 };
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{auth::AuthUser, error::ApiError, state::AppState};
@@ -185,4 +187,23 @@ pub async fn revoke_agent(
         .await;
 
     Ok(Json(agent))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MetricsQuery {
+    pub limit: Option<i64>,
+}
+
+pub async fn get_host_metrics(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    Path(id): Path<Uuid>,
+    Query(query): Query<MetricsQuery>,
+) -> Result<Json<Vec<AgentHeartbeat>>, ApiError> {
+    auth.0.require_permission(Permission::HostRead)?;
+    let history = state
+        .heartbeat_repo
+        .get_metrics_history(id, query.limit.unwrap_or(30))
+        .await?;
+    Ok(Json(history))
 }

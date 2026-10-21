@@ -40,7 +40,11 @@ pub fn build_app(state: AppState) -> Router {
                 .put(routes::hosts::update_host)
                 .delete(routes::hosts::decommission_host),
         )
-        // Agent Enrollment
+        .route(
+            "/api/v1/hosts/{id}/metrics",
+            get(routes::hosts::get_host_metrics),
+        )
+        // Agent Enrollment & Heartbeats
         .route(
             "/api/v1/hosts/{id}/enroll",
             post(routes::hosts::enroll_agent),
@@ -48,6 +52,38 @@ pub fn build_app(state: AppState) -> Router {
         .route(
             "/api/v1/hosts/{id}/revoke",
             post(routes::hosts::revoke_agent),
+        )
+        .route(
+            "/api/v1/agent/heartbeat",
+            post(routes::agent::receive_heartbeat),
+        )
+        // Clusters & Topology
+        .route(
+            "/api/v1/clusters",
+            get(routes::clusters::list_clusters).post(routes::clusters::create_cluster),
+        )
+        .route("/api/v1/clusters/{id}", get(routes::clusters::get_cluster))
+        .route(
+            "/api/v1/clusters/{id}/nodes",
+            post(routes::clusters::add_node_to_cluster),
+        )
+        .route(
+            "/api/v1/clusters/{id}/topology",
+            get(routes::clusters::get_cluster_topology),
+        )
+        // Alerts & Maintenance
+        .route(
+            "/api/v1/alerts/rules",
+            get(routes::alerts::list_alert_rules),
+        )
+        .route("/api/v1/alerts", get(routes::alerts::list_active_alerts))
+        .route(
+            "/api/v1/alerts/{id}/acknowledge",
+            post(routes::alerts::acknowledge_alert),
+        )
+        .route(
+            "/api/v1/maintenance-windows",
+            post(routes::alerts::create_maintenance_window),
         )
         // Audit log
         .route("/api/v1/audit", get(routes::audit::list_audit_events))
@@ -121,6 +157,21 @@ mod tests {
         let app = build_app(AppState::new_test());
         let request = Request::builder()
             .uri("/api/v1/hosts")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn clusters_endpoint_requires_authorization() {
+        let app = build_app(AppState::new_test());
+        let request = Request::builder()
+            .uri("/api/v1/clusters")
             .body(Body::empty())
             .unwrap_or_else(|error| panic!("failed to build request: {error}"));
         let response = app

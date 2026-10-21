@@ -22,14 +22,18 @@ Nodlance is an open-source platform providing a self-hosted control plane for di
 ```text
 nodlance/
 ├── crates/
-│   ├── nodlance-domain/    # Shared domain entities, vocabulary, and repository ports
-│   ├── nodlance-db/        # PostgreSQL storage, connection pool, migrations, repositories
-│   ├── nodlance-auth/      # Argon2 password hashing, JWT tokens, RBAC context
-│   └── nodlance-api/       # Axum HTTP API, middleware, route handlers
-├── docs/                   # PRD, architecture, threat model, ADRs, roadmap
-├── openapi.yaml            # OpenAPI 3.1 API specification
-├── deploy/compose/         # Docker Compose development environment (API + PostgreSQL)
-└── .github/workflows/      # CI checks (fmt, clippy, tests)
+│   ├── nodlance-domain/            # Shared domain entities, vocabulary, and repository ports
+│   ├── nodlance-db/                # PostgreSQL storage, connection pool, migrations, repositories
+│   ├── nodlance-auth/              # Argon2 password hashing, JWT tokens, RBAC context
+│   ├── nodlance-adapter-postgres/  # PostgreSQL health, recovery, and replication probe adapter
+│   ├── nodlance-adapter-mysql/     # MySQL/MariaDB health and replica status probe adapter
+│   ├── nodlance-agent/             # Lightweight host monitoring daemon binary
+│   └── nodlance-api/               # Axum HTTP API, middleware, route handlers
+├── assets/                         # SVG icons, logo, and brand assets
+├── docs/                           # PRD, architecture, threat model, ADRs, roadmap
+├── openapi.yaml                    # OpenAPI 3.1 API specification
+├── deploy/compose/                 # Docker Compose development environment (API + PostgreSQL)
+└── .github/workflows/              # CI checks (fmt, clippy, tests)
 ```
 
 ## Requirements
@@ -77,7 +81,7 @@ docker compose -f deploy/compose/compose.yaml up --build
 
 This starts PostgreSQL and the Nodlance API control plane with automatic database migrations and initial admin user seeding.
 
-## API surface (Stage 1)
+## API surface (Stage 1 & Stage 2)
 
 | Method | Endpoint | Permission | Description |
 |---|---|---|---|
@@ -92,8 +96,19 @@ This starts PostgreSQL and the Nodlance API control plane with automatic databas
 | `GET` | `/api/v1/hosts/{id}` | `host:read` | Get host details |
 | `PUT` | `/api/v1/hosts/{id}` | `host:write` | Update host |
 | `DELETE` | `/api/v1/hosts/{id}` | `host:write` | Decommission host |
+| `GET` | `/api/v1/hosts/{id}/metrics` | `host:read` | Query host telemetry & metrics history |
 | `POST` | `/api/v1/hosts/{id}/enroll` | `agent:write` | Enroll node agent identity |
 | `POST` | `/api/v1/hosts/{id}/revoke` | `agent:write` | Revoke node agent identity |
+| `POST` | `/api/v1/agent/heartbeat` | Agent | Ingest agent heartbeat and host metrics |
+| `GET` | `/api/v1/clusters` | `host:read` | List database clusters |
+| `POST` | `/api/v1/clusters` | `host:write` | Create database cluster |
+| `GET` | `/api/v1/clusters/{id}` | `host:read` | Get cluster details |
+| `POST` | `/api/v1/clusters/{id}/nodes` | `host:write` | Register database node into cluster |
+| `GET` | `/api/v1/clusters/{id}/topology` | `host:read` | Observed cluster replication topology view |
+| `GET` | `/api/v1/alerts/rules` | `audit:read` | List alert evaluation rules |
+| `GET` | `/api/v1/alerts` | `audit:read` | List active alert incidents |
+| `POST` | `/api/v1/alerts/{id}/acknowledge` | `host:write` | Acknowledge active alert incident |
+| `POST` | `/api/v1/maintenance-windows` | `host:write` | Schedule maintenance window |
 | `GET` | `/api/v1/audit` | `audit:read` | Query audit event log |
 
 See [`openapi.yaml`](openapi.yaml) for full schema details.
