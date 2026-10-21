@@ -1081,6 +1081,176 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/clusters/{id}/recovery/candidates:
+    get:
+      summary: List candidate replicas evaluated for promotion
+      operationId: listRecoveryCandidates
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of evaluated candidates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PromotionCandidate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/clusters/{id}/recovery/promote:
+    post:
+      summary: Request operator-approved replica promotion
+      operationId: requestPromotion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestPromotionPayload'
+      responses:
+        '201':
+          description: Promotion request created in pending_approval state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/clusters/{id}/recovery/promote/{req_id}/approve:
+    post:
+      summary: Approve replica promotion with operator token
+      operationId: approvePromotion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: req_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovePromotionPayload'
+      responses:
+        '200':
+          description: Promotion request approved and queued for execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/clusters/{id}/recovery/fence:
+    post:
+      summary: Execute verifiable fencing of a node
+      operationId: fenceNode
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FenceNodePayload'
+      responses:
+        '202':
+          description: Fencing job enqueued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/clusters/{id}/recovery/epoch:
+    get:
+      summary: Get cluster term/epoch status
+      operationId: getClusterEpoch
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Current cluster epoch status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EpochStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/recovery/fault-injection:
+    post:
+      summary: Run fault-injection qualification test suite
+      operationId: runFaultInjection
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Fault injection simulation results
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1910,5 +2080,135 @@ components:
         namespace:
           type: string
           nullable: true
+
+    PromotionCandidate:
+      type: object
+      required: [host_id, role, replication_lag_bytes, replay_latency_ms, is_durable, health, suitability_score]
+      properties:
+        host_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+        replication_lag_bytes:
+          type: integer
+        replay_latency_ms:
+          type: integer
+        is_durable:
+          type: boolean
+        health:
+          type: string
+        suitability_score:
+          type: integer
+
+    RequestPromotionPayload:
+      type: object
+      required: [candidate_host_id]
+      properties:
+        candidate_host_id:
+          type: string
+          format: uuid
+        target_epoch:
+          type: integer
+          nullable: true
+
+    ApprovePromotionPayload:
+      type: object
+      properties:
+        approval_token:
+          type: string
+          nullable: true
+
+    FenceNodePayload:
+      type: object
+      required: [target_host_id]
+      properties:
+        target_host_id:
+          type: string
+          format: uuid
+        fencing_type:
+          type: string
+          enum: [power_stonith, network_isolation, storage_detach, custom_webhook]
+
+    PromotionRequest:
+      type: object
+      required: [id, cluster_id, candidate_host_id, target_epoch, status, safety_gates_passed, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        cluster_id:
+          type: string
+          format: uuid
+        candidate_host_id:
+          type: string
+          format: uuid
+        target_epoch:
+          type: integer
+        status:
+          type: string
+          enum: [pending_approval, approved, executing, promoted, rejected, failed]
+        approval_token:
+          type: string
+          nullable: true
+        approved_by:
+          type: string
+          format: uuid
+          nullable: true
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+        fencing_execution_id:
+          type: string
+          format: uuid
+          nullable: true
+        safety_gates_passed:
+          type: boolean
+        error_message:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ClusterEpoch:
+      type: object
+      required: [id, cluster_id, epoch, reason, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        cluster_id:
+          type: string
+          format: uuid
+        epoch:
+          type: integer
+        promoted_host_id:
+          type: string
+          format: uuid
+          nullable: true
+        reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    EpochStatusResponse:
+      type: object
+      required: [cluster_id, current_epoch]
+      properties:
+        cluster_id:
+          type: string
+          format: uuid
+        current_epoch:
+          type: integer
+        latest_epoch_record:
+          $ref: '#/components/schemas/ClusterEpoch'
+          nullable: true
+
 
 

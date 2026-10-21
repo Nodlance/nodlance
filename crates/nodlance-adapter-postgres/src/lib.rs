@@ -183,6 +183,48 @@ pub async fn execute_postgres_backup(
     })
 }
 
+/// Handler for validating and executing PostgreSQL replica promotion.
+#[derive(Debug, Clone, Default)]
+pub struct PostgresPromotionHandler;
+
+impl PostgresPromotionHandler {
+    pub fn new() -> Self {
+        Self
+    }
+
+    /// Returns SQL query to execute promotion on the target replica.
+    pub fn generate_promotion_sql(&self) -> &'static str {
+        "SELECT pg_promote();"
+    }
+
+    /// Returns SQL query to verify node is no longer in standby/recovery mode.
+    pub fn generate_recovery_check_sql(&self) -> &'static str {
+        "SELECT pg_is_in_recovery();"
+    }
+
+    /// Evaluates candidate preconditions before executing promotion.
+    pub fn evaluate_preconditions(
+        &self,
+        is_in_recovery: bool,
+        replication_lag_bytes: u64,
+        max_allowed_lag_bytes: u64,
+    ) -> Result<(), PostgresAdapterError> {
+        if !is_in_recovery {
+            return Err(PostgresAdapterError::Query(
+                "candidate is already primary or not in standby recovery mode".to_string(),
+            ));
+        }
+
+        if replication_lag_bytes > max_allowed_lag_bytes {
+            return Err(PostgresAdapterError::Query(format!(
+                "replication lag ({replication_lag_bytes} bytes) exceeds safety threshold ({max_allowed_lag_bytes} bytes)"
+            )));
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -203,5 +245,27 @@ mod tests {
         let expected = hex::encode(hasher.finalize());
 
         assert_eq!(hash, expected);
+    }
+
+    #[test]
+    fn test_postgres_promotion_handler() {
+        let handler = PostgresPromotionHandler::new();
+        assert_eq!(handler.generate_promotion_sql(), "SELECT pg_promote();");
+        assert_eq!(
+            handler.generate_recovery_check_sql(),
+            "SELECT pg_is_in_recovery();"
+        );
+
+        assert!(handler.evaluate_preconditions(true, 1024, 1048576).is_ok());
+        assert!(
+            handler
+                .evaluate_preconditions(false, 1024, 1048576)
+                .is_err()
+        );
+        assert!(
+            handler
+                .evaluate_preconditions(true, 2097152, 1048576)
+                .is_err()
+        );
     }
 }

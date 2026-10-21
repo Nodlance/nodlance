@@ -15,6 +15,7 @@ nodlance-domain.workspace = true
 nodlance-provider-docker.workspace = true
 nodlance-provider-k8s.workspace = true
 nodlance-provider-linux.workspace = true
+nodlance-recovery.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true

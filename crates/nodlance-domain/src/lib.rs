@@ -16,6 +16,7 @@ pub mod metrics;
 pub mod observation;
 pub mod ports;
 pub mod provisioning;
+pub mod recovery;
 pub mod user;
 
 // Re-export commonly used types at the crate root.
@@ -38,12 +39,17 @@ pub use metrics::HostMetrics;
 pub use observation::{ClusterTopology, NodeObservation};
 pub use ports::{
     AgentRepository, AlertRepository, AuditRepository, BackupRepository, ClusterRepository,
-    DiscoveryRepository, HeartbeatRepository, HostRepository, JobRepository, ObservationRepository,
-    ProvisioningRepository, UserRepository,
+    DiscoveryRepository, FencingProvider, HeartbeatRepository, HostRepository, JobRepository,
+    ObservationRepository, ProvisioningRepository, RecoveryRepository, UserRepository,
 };
 pub use provisioning::{
     DiscoveredWorkload, NewDiscoveredWorkload, NewProvisioningPlan, ProviderType,
     ProvisioningConfig, ProvisioningPlan, ProvisioningStatus, ProvisioningStep,
     ProvisioningStepType, StepStatus,
+};
+pub use recovery::{
+    ClusterEpoch, FaultInjectionResult, FaultInjectionScenario, FencingExecution, FencingStatus,
+    FencingType, NewPromotionRequest, PromotionCandidate, PromotionRequest, PromotionSafetyGates,
+    PromotionStatus, UpdatePromotionParams,
 };
 pub use user::{NewUser, Permission, Role, User};

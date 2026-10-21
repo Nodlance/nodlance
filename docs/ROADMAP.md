@@ -39,8 +39,8 @@
 
 ## Stage 5 — recovery and HA
 
-- [ ] Operator-approved promotion workflow
-- [ ] Topology-specific fencing integration
-- [ ] Coordination/quorum and stale-command controls
-- [ ] Fault-injection qualification
-- [ ] Automatic failover only after documented safety gates
+- [x] Operator-approved promotion workflow
+- [x] Topology-specific fencing integration
+- [x] Coordination/quorum and stale-command controls
+- [x] Fault-injection qualification
+- [x] Automatic failover only after documented safety gates

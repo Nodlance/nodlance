@@ -2,7 +2,7 @@ use std::{env, time::Duration};
 
 use nodlance_db::{
     PgBackupRepository, PgClusterRepository, PgDiscoveryRepository, PgJobRepository,
-    PgProvisioningRepository,
+    PgProvisioningRepository, PgRecoveryRepository,
 };
 use nodlance_worker::WorkerRunner;
 use tokio::time::sleep;
@@ -26,6 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cluster_repo = PgClusterRepository::new(pool.clone());
     let provisioning_repo = PgProvisioningRepository::new(pool.clone());
     let discovery_repo = PgDiscoveryRepository::new(pool.clone());
+    let recovery_repo = PgRecoveryRepository::new(pool.clone());
 
     let runner = WorkerRunner::new(
         worker_id,
@@ -34,6 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cluster_repo,
         provisioning_repo,
         discovery_repo,
+        recovery_repo,
     );
 
     loop {

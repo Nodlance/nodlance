@@ -12,6 +12,7 @@ members = [
     "crates/nodlance-provider-linux",
     "crates/nodlance-provider-docker",
     "crates/nodlance-provider-k8s",
+    "crates/nodlance-recovery",
 ]
 
 [workspace.package]
@@ -48,6 +49,7 @@ nodlance-worker = { path = "crates/nodlance-worker" }
 nodlance-provider-linux = { path = "crates/nodlance-provider-linux" }
 nodlance-provider-docker = { path = "crates/nodlance-provider-docker" }
 nodlance-provider-k8s = { path = "crates/nodlance-provider-k8s" }
+nodlance-recovery = { path = "crates/nodlance-recovery" }
 
 
 [workspace.lints.rust]

@@ -12,6 +12,7 @@ chrono.workspace = true
 nodlance-auth.workspace = true
 nodlance-db.workspace = true
 nodlance-domain.workspace = true
+nodlance-recovery.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true

@@ -20,6 +20,10 @@ use crate::{
         DiscoveredWorkload, NewDiscoveredWorkload, NewProvisioningPlan, ProviderType,
         ProvisioningPlan, ProvisioningStatus, ProvisioningStep, StepStatus,
     },
+    recovery::{
+        ClusterEpoch, FencingExecution, FencingStatus, FencingType, NewPromotionRequest,
+        PromotionRequest, UpdatePromotionParams,
+    },
     user::{NewUser, Permission, Role, User},
 };
 
@@ -363,4 +367,73 @@ pub trait DiscoveryRepository: Send + Sync {
         &self,
         id: Uuid,
     ) -> impl Future<Output = Result<Option<DiscoveredWorkload>, DomainError>> + Send;
+}
+
+/// Port for cluster recovery, epoch monotonic tracking, promotion workflows, and fencing.
+pub trait RecoveryRepository: Send + Sync {
+    fn get_current_epoch(
+        &self,
+        cluster_id: Uuid,
+    ) -> impl Future<Output = Result<Option<ClusterEpoch>, DomainError>> + Send;
+
+    fn increment_epoch(
+        &self,
+        cluster_id: Uuid,
+        promoted_host_id: Option<Uuid>,
+        reason: &str,
+    ) -> impl Future<Output = Result<ClusterEpoch, DomainError>> + Send;
+
+    fn create_promotion_request(
+        &self,
+        req: &NewPromotionRequest,
+    ) -> impl Future<Output = Result<PromotionRequest, DomainError>> + Send;
+
+    fn get_promotion_request(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<Option<PromotionRequest>, DomainError>> + Send;
+
+    fn list_promotion_requests(
+        &self,
+        cluster_id: Option<Uuid>,
+    ) -> impl Future<Output = Result<Vec<PromotionRequest>, DomainError>> + Send;
+
+    fn update_promotion_status(
+        &self,
+        id: Uuid,
+        params: UpdatePromotionParams<'_>,
+    ) -> impl Future<Output = Result<PromotionRequest, DomainError>> + Send;
+
+    fn record_fencing_execution(
+        &self,
+        execution: &FencingExecution,
+    ) -> impl Future<Output = Result<FencingExecution, DomainError>> + Send;
+
+    fn get_fencing_execution(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<Option<FencingExecution>, DomainError>> + Send;
+
+    fn update_fencing_status(
+        &self,
+        id: Uuid,
+        status: FencingStatus,
+        verification_proof: Option<&str>,
+        error_message: Option<&str>,
+    ) -> impl Future<Output = Result<FencingExecution, DomainError>> + Send;
+}
+
+/// Port for dispatching node fencing operations.
+pub trait FencingProvider: Send + Sync {
+    fn execute_fencing(
+        &self,
+        cluster_id: Uuid,
+        target_host_id: Uuid,
+        fencing_type: FencingType,
+    ) -> impl Future<Output = Result<FencingExecution, DomainError>> + Send;
+
+    fn verify_fencing(
+        &self,
+        execution_id: Uuid,
+    ) -> impl Future<Output = Result<bool, DomainError>> + Send;
 }

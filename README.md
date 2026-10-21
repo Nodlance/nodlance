@@ -5,7 +5,7 @@
 
 Nodlance is an open-source platform providing a self-hosted control plane for discovering, monitoring, and safely operating database clusters across heterogeneous environments (Linux bare-metal, VMs, containers, and Kubernetes).
 
-> **Status: Stage 4 — Guarded Provisioning & Providers.** The control plane supports PostgreSQL metadata persistence, RBAC-protected authentication, host inventory management, agent enrollment/revocation, telemetry monitoring, cluster topology views, durable leased job execution, verified database backups with restore drills, and guarded provisioning across Linux/VM, Docker, and Kubernetes with least-privilege installation and atomic rollback workflows.
+> **Status: Stage 5 — Recovery and High Availability.** The control plane supports PostgreSQL metadata persistence, RBAC-protected authentication, host inventory management, agent enrollment/revocation, telemetry monitoring, cluster topology views, durable leased job execution, verified database backups with restore drills, guarded multi-provider provisioning (Linux, Docker, Kubernetes) with reverse rollback, and robust High Availability recovery with operator-approved promotion workflows, verifiable node fencing, cluster term/epoch monotonicity, majority quorum validation, and fault-injection qualification.
 
 ## Project principles
 
@@ -25,11 +25,12 @@ nodlance/
 │   ├── nodlance-domain/            # Shared domain entities, vocabulary, and repository ports
 │   ├── nodlance-db/                # PostgreSQL storage, connection pool, migrations, repositories
 │   ├── nodlance-auth/              # Argon2 password hashing, JWT tokens, RBAC context
-│   ├── nodlance-adapter-postgres/  # PostgreSQL health, replication probe, and backup adapter
-│   ├── nodlance-adapter-mysql/     # MySQL/MariaDB health, replica status, and backup adapter
+│   ├── nodlance-adapter-postgres/  # PostgreSQL health, replication probe, promotion, and backup adapter
+│   ├── nodlance-adapter-mysql/     # MySQL/MariaDB health, replica status, promotion, and backup adapter
 │   ├── nodlance-provider-linux/    # Guarded Linux/VM systemd, preflight, config, and rollback
 │   ├── nodlance-provider-docker/   # Guarded Docker container provisioning with resource limits
 │   ├── nodlance-provider-k8s/      # Kubernetes discovery and declarative StatefulSet provider
+│   ├── nodlance-recovery/          # Fencing engine, majority quorum, epoch monotonic guard, fault injection
 │   ├── nodlance-agent/             # Lightweight host monitoring daemon binary
 │   ├── nodlance-worker/            # Background worker daemon running leased operations
 │   └── nodlance-api/               # Axum HTTP API, middleware, route handlers
@@ -125,6 +126,12 @@ This starts PostgreSQL and the Nodlance API control plane with automatic databas
 | `POST` | `/api/v1/discovery/scan` | `host:write` | Trigger workload discovery scan |
 | `GET` | `/api/v1/discovery/workloads` | `host:read` | List discovered database workloads |
 | `GET` | `/api/v1/discovery/workloads/{id}` | `host:read` | Get discovered workload details |
+| `GET` | `/api/v1/clusters/{id}/recovery/candidates` | `host:read` | List evaluated replica candidates for promotion |
+| `POST` | `/api/v1/clusters/{id}/recovery/promote` | `host:write` | Request operator-approved replica promotion |
+| `POST` | `/api/v1/clusters/{id}/recovery/promote/{req_id}/approve` | `host:write` | Approve replica promotion with operator token |
+| `POST` | `/api/v1/clusters/{id}/recovery/fence` | `host:write` | Enqueue verifiable fencing for target host |
+| `GET` | `/api/v1/clusters/{id}/recovery/epoch` | `host:read` | Get cluster term/epoch status and history |
+| `POST` | `/api/v1/recovery/fault-injection` | `host:write` | Run fault-injection qualification test suite |
 | `GET` | `/api/v1/alerts/rules` | `audit:read` | List alert evaluation rules |
 | `GET` | `/api/v1/alerts` | `audit:read` | List active alert incidents |
 | `POST` | `/api/v1/alerts/{id}/acknowledge` | `host:write` | Acknowledge active alert incident |

@@ -153,6 +153,55 @@ pub async fn execute_mysql_backup(
     })
 }
 
+/// Handler for validating and executing MySQL/MariaDB replica promotion.
+#[derive(Debug, Clone, Default)]
+pub struct MysqlPromotionHandler;
+
+impl MysqlPromotionHandler {
+    pub fn new() -> Self {
+        Self
+    }
+
+    /// Returns SQL queries to execute promotion on the target replica.
+    pub fn generate_promotion_sqls(&self) -> Vec<&'static str> {
+        vec![
+            "STOP REPLICA;",
+            "RESET REPLICA ALL;",
+            "SET GLOBAL read_only = OFF;",
+        ]
+    }
+
+    /// Returns SQL query to verify node is read-write (read_only == 0).
+    pub fn generate_read_only_check_sql(&self) -> &'static str {
+        "SELECT @@read_only;"
+    }
+
+    /// Evaluates candidate preconditions before executing promotion.
+    pub fn evaluate_preconditions(
+        &self,
+        is_read_only: bool,
+        seconds_behind_source: Option<u64>,
+        max_allowed_lag_seconds: u64,
+    ) -> Result<(), MySqlAdapterError> {
+        if !is_read_only {
+            return Err(MySqlAdapterError::Query(
+                "candidate is already read-write or not configured as read_only replica"
+                    .to_string(),
+            ));
+        }
+
+        if let Some(lag) = seconds_behind_source {
+            if lag > max_allowed_lag_seconds {
+                return Err(MySqlAdapterError::Query(format!(
+                    "replication lag ({lag} seconds) exceeds safety threshold ({max_allowed_lag_seconds} seconds)"
+                )));
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,5 +220,20 @@ mod tests {
         let expected = hex::encode(hasher.finalize());
 
         assert_eq!(hash, expected);
+    }
+
+    #[test]
+    fn test_mysql_promotion_handler() {
+        let handler = MysqlPromotionHandler::new();
+        let sqls = handler.generate_promotion_sqls();
+        assert_eq!(sqls.len(), 3);
+        assert_eq!(
+            handler.generate_read_only_check_sql(),
+            "SELECT @@read_only;"
+        );
+
+        assert!(handler.evaluate_preconditions(true, Some(2), 10).is_ok());
+        assert!(handler.evaluate_preconditions(false, Some(2), 10).is_err());
+        assert!(handler.evaluate_preconditions(true, Some(20), 10).is_err());
     }
 }

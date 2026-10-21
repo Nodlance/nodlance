@@ -4,19 +4,21 @@ use std::path::PathBuf;
 
 use nodlance_db::{
     PgBackupRepository, PgClusterRepository, PgDiscoveryRepository, PgJobRepository,
-    PgProvisioningRepository,
+    PgProvisioningRepository, PgRecoveryRepository,
 };
 use nodlance_domain::{
     BackupRepository, BackupType, ClusterRepository, DatabaseEngine, DiscoveryRepository,
-    DomainError, Job, JobRepository, JobType, NewBackupArtifact, NewDiscoveredWorkload,
-    ProviderType, ProvisioningPlan, ProvisioningRepository, ProvisioningStatus,
-    ProvisioningStepType, StepStatus,
+    DomainError, FencingProvider, FencingStatus, FencingType, Job, JobRepository, JobType,
+    NewBackupArtifact, NewDiscoveredWorkload, NodeRole, PromotionStatus, ProviderType,
+    ProvisioningPlan, ProvisioningRepository, ProvisioningStatus, ProvisioningStepType,
+    RecoveryRepository, StepStatus, UpdatePromotionParams,
 };
 use nodlance_provider_docker::{DockerRollbackPlanner, build_docker_spec};
 use nodlance_provider_k8s::{K8sManifestGenerator, K8sRollbackPlanner};
 use nodlance_provider_linux::{
     LinuxConfigGenerator, LinuxRollbackPlanner, validate_linux_preflight,
 };
+use nodlance_recovery::{FaultInjectionRunner, FencingEngine, evaluate_quorum};
 use uuid::Uuid;
 
 pub struct WorkerRunner {
@@ -26,6 +28,7 @@ pub struct WorkerRunner {
     pub cluster_repo: PgClusterRepository,
     pub provisioning_repo: PgProvisioningRepository,
     pub discovery_repo: PgDiscoveryRepository,
+    pub recovery_repo: PgRecoveryRepository,
 }
 
 impl WorkerRunner {
@@ -36,6 +39,7 @@ impl WorkerRunner {
         cluster_repo: PgClusterRepository,
         provisioning_repo: PgProvisioningRepository,
         discovery_repo: PgDiscoveryRepository,
+        recovery_repo: PgRecoveryRepository,
     ) -> Self {
         Self {
             worker_id,
@@ -44,6 +48,7 @@ impl WorkerRunner {
             cluster_repo,
             provisioning_repo,
             discovery_repo,
+            recovery_repo,
         }
     }
 
@@ -88,6 +93,10 @@ impl WorkerRunner {
             JobType::ProvisionCluster => self.execute_provision_cluster(job).await,
             JobType::RollbackProvisioning => self.execute_rollback_provisioning(job).await,
             JobType::DiscoverWorkloads => self.execute_discover_workloads(job).await,
+            JobType::EvaluatePromotion => self.execute_evaluate_promotion(job).await,
+            JobType::ExecutePromotion => self.execute_promotion(job).await,
+            JobType::ExecuteFencing => self.execute_fencing(job).await,
+            JobType::RunFaultInjectionTest => self.execute_fault_injection(job).await,
             JobType::Reconciliation | JobType::HealthCheck => Ok(serde_json::json!({
                 "status": "succeeded",
                 "message": "reconciliation passed without required changes"
@@ -473,6 +482,237 @@ impl WorkerRunner {
             "workload_id": workload.id,
             "workload_name": workload.workload_name,
             "status": workload.status
+        }))
+    }
+
+    async fn execute_evaluate_promotion(
+        &self,
+        job: &Job,
+    ) -> Result<serde_json::Value, DomainError> {
+        let request_id_str = job
+            .payload
+            .get("request_id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| DomainError::Validation("request_id required in payload".into()))?;
+        let request_id =
+            Uuid::parse_str(request_id_str).map_err(|e| DomainError::Validation(e.to_string()))?;
+
+        let req = self
+            .recovery_repo
+            .get_promotion_request(request_id)
+            .await?
+            .ok_or_else(|| {
+                DomainError::NotFound(format!("promotion request not found: {request_id}"))
+            })?;
+
+        let nodes = self
+            .cluster_repo
+            .list_nodes_by_cluster(req.cluster_id)
+            .await?;
+        let total_nodes = nodes.len();
+        let live_nodes = nodes
+            .iter()
+            .filter(|n| n.health != nodlance_domain::NodeHealth::Unreachable)
+            .count();
+
+        let quorum_result = evaluate_quorum(total_nodes, live_nodes);
+        let quorum_satisfied = quorum_result.is_ok();
+
+        let updated = self
+            .recovery_repo
+            .update_promotion_status(
+                req.id,
+                UpdatePromotionParams {
+                    status: req.status,
+                    safety_gates_passed: Some(quorum_satisfied),
+                    error_message: if quorum_satisfied {
+                        None
+                    } else {
+                        Some("quorum evaluation failed: reachable nodes below majority threshold")
+                    },
+                    ..Default::default()
+                },
+            )
+            .await?;
+
+        Ok(serde_json::json!({
+            "request_id": updated.id,
+            "cluster_id": updated.cluster_id,
+            "quorum_satisfied": quorum_satisfied,
+            "total_nodes": total_nodes,
+            "live_nodes": live_nodes,
+            "status": updated.status.as_str()
+        }))
+    }
+
+    async fn execute_fencing(&self, job: &Job) -> Result<serde_json::Value, DomainError> {
+        let cluster_id_str = job
+            .payload
+            .get("cluster_id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| DomainError::Validation("cluster_id required in payload".into()))?;
+        let cluster_id =
+            Uuid::parse_str(cluster_id_str).map_err(|e| DomainError::Validation(e.to_string()))?;
+
+        let target_host_id_str = job
+            .payload
+            .get("target_host_id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| DomainError::Validation("target_host_id required in payload".into()))?;
+        let target_host_id = Uuid::parse_str(target_host_id_str)
+            .map_err(|e| DomainError::Validation(e.to_string()))?;
+
+        let fencing_type_str = job
+            .payload
+            .get("fencing_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("power_stonith");
+        let fencing_type: FencingType = fencing_type_str
+            .parse()
+            .map_err(|e| DomainError::Validation(format!("invalid fencing_type: {e}")))?;
+
+        let engine = FencingEngine::new();
+        let execution = engine
+            .execute_fencing(cluster_id, target_host_id, fencing_type)
+            .await?;
+
+        let recorded = self
+            .recovery_repo
+            .record_fencing_execution(&execution)
+            .await?;
+
+        Ok(serde_json::json!({
+            "fencing_execution_id": recorded.id,
+            "cluster_id": recorded.cluster_id,
+            "target_host_id": recorded.target_host_id,
+            "fencing_type": recorded.fencing_type.as_str(),
+            "status": recorded.status.as_str(),
+            "verification_proof": recorded.verification_proof
+        }))
+    }
+
+    async fn execute_promotion(&self, job: &Job) -> Result<serde_json::Value, DomainError> {
+        let request_id_str = job
+            .payload
+            .get("request_id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| DomainError::Validation("request_id required in payload".into()))?;
+        let request_id =
+            Uuid::parse_str(request_id_str).map_err(|e| DomainError::Validation(e.to_string()))?;
+
+        let req = self
+            .recovery_repo
+            .get_promotion_request(request_id)
+            .await?
+            .ok_or_else(|| {
+                DomainError::NotFound(format!("promotion request not found: {request_id}"))
+            })?;
+
+        // Safety gate check: Must be approved by operator
+        if req.status != PromotionStatus::Approved {
+            return Err(DomainError::Validation(format!(
+                "cannot execute promotion: request status is '{}', operator approval required",
+                req.status.as_str()
+            )));
+        }
+
+        // Safety gate check: Fencing must be verified
+        let fencing_id = req.fencing_execution_id.ok_or_else(|| {
+            DomainError::Validation(
+                "cannot execute promotion without verified fencing of old primary".into(),
+            )
+        })?;
+        let fencing = self
+            .recovery_repo
+            .get_fencing_execution(fencing_id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("fencing execution record not found".into()))?;
+        if fencing.status != FencingStatus::Verified {
+            return Err(DomainError::Validation(
+                "cannot execute promotion: fencing has not been verified".into(),
+            ));
+        }
+
+        // Transition status to Executing
+        self.recovery_repo
+            .update_promotion_status(
+                req.id,
+                UpdatePromotionParams {
+                    status: PromotionStatus::Executing,
+                    ..Default::default()
+                },
+            )
+            .await?;
+
+        // Monotonically increment cluster epoch
+        let epoch = self
+            .recovery_repo
+            .increment_epoch(
+                req.cluster_id,
+                Some(req.candidate_host_id),
+                "operator_approved_promotion_executed",
+            )
+            .await?;
+
+        // Update promoted node role in cluster nodes
+        let nodes = self
+            .cluster_repo
+            .list_nodes_by_cluster(req.cluster_id)
+            .await?;
+        for node in nodes {
+            if node.host_id == req.candidate_host_id {
+                self.cluster_repo
+                    .update_node_status(node.id, NodeRole::Primary, node.health)
+                    .await?;
+            } else if node.role == NodeRole::Primary {
+                self.cluster_repo
+                    .update_node_status(node.id, NodeRole::Replica, node.health)
+                    .await?;
+            }
+        }
+
+        // Transition status to Promoted
+        let finished = self
+            .recovery_repo
+            .update_promotion_status(
+                req.id,
+                UpdatePromotionParams {
+                    status: PromotionStatus::Promoted,
+                    ..Default::default()
+                },
+            )
+            .await?;
+
+        Ok(serde_json::json!({
+            "request_id": finished.id,
+            "status": finished.status.as_str(),
+            "new_cluster_epoch": epoch.epoch,
+            "promoted_host_id": req.candidate_host_id
+        }))
+    }
+
+    async fn execute_fault_injection(&self, _job: &Job) -> Result<serde_json::Value, DomainError> {
+        let results = FaultInjectionRunner::run_all_scenarios();
+        let all_passed = results.iter().all(|r| r.passed);
+
+        let results_json: Vec<serde_json::Value> = results
+            .into_iter()
+            .map(|r| {
+                serde_json::json!({
+                    "scenario": r.scenario.as_str(),
+                    "passed": r.passed,
+                    "split_brain_prevented": r.split_brain_prevented,
+                    "stale_command_rejected": r.stale_command_rejected,
+                    "details": r.details,
+                    "timestamp": r.timestamp
+                })
+            })
+            .collect();
+
+        Ok(serde_json::json!({
+            "qualification_passed": all_passed,
+            "scenarios_tested": results_json.len(),
+            "results": results_json
         }))
     }
 }

@@ -17,6 +17,10 @@ pub enum JobType {
     ProvisionCluster,
     RollbackProvisioning,
     DiscoverWorkloads,
+    EvaluatePromotion,
+    ExecutePromotion,
+    ExecuteFencing,
+    RunFaultInjectionTest,
 }
 
 impl JobType {
@@ -29,6 +33,10 @@ impl JobType {
             Self::ProvisionCluster => "provision_cluster",
             Self::RollbackProvisioning => "rollback_provisioning",
             Self::DiscoverWorkloads => "discover_workloads",
+            Self::EvaluatePromotion => "evaluate_promotion",
+            Self::ExecutePromotion => "execute_promotion",
+            Self::ExecuteFencing => "execute_fencing",
+            Self::RunFaultInjectionTest => "run_fault_injection_test",
         }
     }
 }
@@ -45,6 +53,10 @@ impl std::str::FromStr for JobType {
             "provision_cluster" => Ok(Self::ProvisionCluster),
             "rollback_provisioning" => Ok(Self::RollbackProvisioning),
             "discover_workloads" => Ok(Self::DiscoverWorkloads),
+            "evaluate_promotion" => Ok(Self::EvaluatePromotion),
+            "execute_promotion" => Ok(Self::ExecutePromotion),
+            "execute_fencing" => Ok(Self::ExecuteFencing),
+            "run_fault_injection_test" => Ok(Self::RunFaultInjectionTest),
             other => Err(format!("unknown job type: {other}")),
         }
     }
@@ -103,6 +115,10 @@ mod tests {
             JobType::ProvisionCluster,
             JobType::RollbackProvisioning,
             JobType::DiscoverWorkloads,
+            JobType::EvaluatePromotion,
+            JobType::ExecutePromotion,
+            JobType::ExecuteFencing,
+            JobType::RunFaultInjectionTest,
         ];
         for t in types {
             let s = t.as_str();

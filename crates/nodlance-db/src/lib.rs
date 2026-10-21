@@ -11,6 +11,7 @@ pub mod host_repo;
 pub mod job_repo;
 pub mod observation_repo;
 pub mod provisioning_repo;
+pub mod recovery_repo;
 pub mod user_repo;
 
 pub use agent_repo::PgAgentRepository;
@@ -23,6 +24,7 @@ pub use host_repo::PgHostRepository;
 pub use job_repo::PgJobRepository;
 pub use observation_repo::PgObservationRepository;
 pub use provisioning_repo::{PgDiscoveryRepository, PgProvisioningRepository};
+pub use recovery_repo::PgRecoveryRepository;
 pub use user_repo::PgUserRepository;
 
 use nodlance_domain::{DomainError, UserRepository};

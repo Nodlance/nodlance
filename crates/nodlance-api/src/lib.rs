@@ -142,6 +142,31 @@ pub fn build_app(state: AppState) -> Router {
             "/api/v1/discovery/workloads/{id}",
             get(routes::discovery::get_discovered_workload),
         )
+        // Recovery, Promotion & Fencing
+        .route(
+            "/api/v1/clusters/{id}/recovery/candidates",
+            get(routes::recovery::list_candidates),
+        )
+        .route(
+            "/api/v1/clusters/{id}/recovery/promote",
+            post(routes::recovery::request_promotion),
+        )
+        .route(
+            "/api/v1/clusters/{id}/recovery/promote/{req_id}/approve",
+            post(routes::recovery::approve_promotion),
+        )
+        .route(
+            "/api/v1/clusters/{id}/recovery/fence",
+            post(routes::recovery::fence_node),
+        )
+        .route(
+            "/api/v1/clusters/{id}/recovery/epoch",
+            get(routes::recovery::get_cluster_epoch),
+        )
+        .route(
+            "/api/v1/recovery/fault-injection",
+            post(routes::recovery::run_fault_injection),
+        )
         .with_state(state)
 }
 
@@ -295,6 +320,48 @@ mod tests {
             .await
             .unwrap_or_else(|error| panic!("router failed: {error}"));
 
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn recovery_endpoints_require_authorization() {
+        let app = build_app(AppState::new_test());
+        let cluster_id = uuid::Uuid::now_v7();
+
+        // 1. candidates endpoint
+        let request = Request::builder()
+            .uri(format!("/api/v1/clusters/{cluster_id}/recovery/candidates"))
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .clone()
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        // 2. epoch endpoint
+        let request = Request::builder()
+            .uri(format!("/api/v1/clusters/{cluster_id}/recovery/epoch"))
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .clone()
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        // 3. fault injection endpoint
+        let request = Request::builder()
+            .method("POST")
+            .uri("/api/v1/recovery/fault-injection")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }

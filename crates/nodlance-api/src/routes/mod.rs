@@ -11,4 +11,5 @@ pub mod health;
 pub mod hosts;
 pub mod jobs;
 pub mod provisioning;
+pub mod recovery;
 pub mod users;
