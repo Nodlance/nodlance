@@ -14,6 +14,9 @@ pub enum JobType {
     RestoreDrill,
     Reconciliation,
     HealthCheck,
+    ProvisionCluster,
+    RollbackProvisioning,
+    DiscoverWorkloads,
 }
 
 impl JobType {
@@ -23,6 +26,9 @@ impl JobType {
             Self::RestoreDrill => "restore_drill",
             Self::Reconciliation => "reconciliation",
             Self::HealthCheck => "health_check",
+            Self::ProvisionCluster => "provision_cluster",
+            Self::RollbackProvisioning => "rollback_provisioning",
+            Self::DiscoverWorkloads => "discover_workloads",
         }
     }
 }
@@ -36,6 +42,9 @@ impl std::str::FromStr for JobType {
             "restore_drill" => Ok(Self::RestoreDrill),
             "reconciliation" => Ok(Self::Reconciliation),
             "health_check" => Ok(Self::HealthCheck),
+            "provision_cluster" => Ok(Self::ProvisionCluster),
+            "rollback_provisioning" => Ok(Self::RollbackProvisioning),
+            "discover_workloads" => Ok(Self::DiscoverWorkloads),
             other => Err(format!("unknown job type: {other}")),
         }
     }
@@ -91,6 +100,9 @@ mod tests {
             JobType::RestoreDrill,
             JobType::Reconciliation,
             JobType::HealthCheck,
+            JobType::ProvisionCluster,
+            JobType::RollbackProvisioning,
+            JobType::DiscoverWorkloads,
         ];
         for t in types {
             let s = t.as_str();

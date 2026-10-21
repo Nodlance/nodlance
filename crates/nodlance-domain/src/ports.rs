@@ -16,6 +16,10 @@ use crate::{
     job::{Job, JobAttempt, NewJob},
     metrics::HostMetrics,
     observation::{ClusterTopology, NodeObservation},
+    provisioning::{
+        DiscoveredWorkload, NewDiscoveredWorkload, NewProvisioningPlan, ProviderType,
+        ProvisioningPlan, ProvisioningStatus, ProvisioningStep, StepStatus,
+    },
     user::{NewUser, Permission, Role, User},
 };
 
@@ -300,4 +304,63 @@ pub trait BackupRepository: Send + Sync {
     ) -> impl Future<Output = Result<Option<RestoreValidationDrill>, DomainError>> + Send;
 
     fn cleanup_expired_backups(&self) -> impl Future<Output = Result<u64, DomainError>> + Send;
+}
+
+/// Port for guarded provisioning plans, step tracking, and rollback logs.
+pub trait ProvisioningRepository: Send + Sync {
+    fn create_plan(
+        &self,
+        plan: &NewProvisioningPlan,
+    ) -> impl Future<Output = Result<ProvisioningPlan, DomainError>> + Send;
+
+    fn get_plan_by_id(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<Option<ProvisioningPlan>, DomainError>> + Send;
+
+    fn list_plans(
+        &self,
+        cluster_id: Option<Uuid>,
+    ) -> impl Future<Output = Result<Vec<ProvisioningPlan>, DomainError>> + Send;
+
+    fn update_plan_status(
+        &self,
+        id: Uuid,
+        status: ProvisioningStatus,
+    ) -> impl Future<Output = Result<ProvisioningPlan, DomainError>> + Send;
+
+    fn record_step(
+        &self,
+        step: &ProvisioningStep,
+    ) -> impl Future<Output = Result<ProvisioningStep, DomainError>> + Send;
+
+    fn list_steps_for_plan(
+        &self,
+        plan_id: Uuid,
+    ) -> impl Future<Output = Result<Vec<ProvisioningStep>, DomainError>> + Send;
+
+    fn update_step_status(
+        &self,
+        step_id: Uuid,
+        status: StepStatus,
+        error_details: Option<&str>,
+    ) -> impl Future<Output = Result<ProvisioningStep, DomainError>> + Send;
+}
+
+/// Port for recording and querying discovered database workloads.
+pub trait DiscoveryRepository: Send + Sync {
+    fn record_discovered_workload(
+        &self,
+        workload: &NewDiscoveredWorkload,
+    ) -> impl Future<Output = Result<DiscoveredWorkload, DomainError>> + Send;
+
+    fn list_discovered_workloads(
+        &self,
+        provider_type: Option<ProviderType>,
+    ) -> impl Future<Output = Result<Vec<DiscoveredWorkload>, DomainError>> + Send;
+
+    fn get_discovered_workload_by_id(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<Option<DiscoveredWorkload>, DomainError>> + Send;
 }

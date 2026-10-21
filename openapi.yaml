@@ -845,6 +845,242 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/v1/provisioning/plans:
+    post:
+      summary: Create guarded database provisioning plan
+      operationId: createProvisioningPlan
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProvisioningPlanRequest'
+      responses:
+        '201':
+          description: Provisioning plan created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProvisioningPlan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      summary: List guarded provisioning plans
+      operationId: listProvisioningPlans
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cluster_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of provisioning plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProvisioningPlan'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/provisioning/plans/{id}:
+    get:
+      summary: Get provisioning plan details
+      operationId: getProvisioningPlan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Provisioning plan details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProvisioningPlan'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/provisioning/plans/{id}/steps:
+    get:
+      summary: Get step progression for provisioning plan
+      operationId: listProvisioningPlanSteps
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of plan steps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProvisioningStep'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/provisioning/plans/{id}/execute:
+    post:
+      summary: Enqueue execution of provisioning plan
+      operationId: executeProvisioningPlan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Provisioning job enqueued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/provisioning/plans/{id}/rollback:
+    post:
+      summary: Enqueue rollback compensation for provisioning plan
+      operationId: rollbackProvisioningPlan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Rollback job enqueued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/discovery/scan:
+    post:
+      summary: Trigger workload discovery scan
+      operationId: triggerDiscoveryScan
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TriggerScanRequest'
+      responses:
+        '202':
+          description: Discovery scan job enqueued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/discovery/workloads:
+    get:
+      summary: List discovered database workloads
+      operationId: listDiscoveredWorkloads
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: provider_type
+          in: query
+          schema:
+            $ref: '#/components/schemas/ProviderType'
+      responses:
+        '200':
+          description: List of discovered workloads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DiscoveredWorkload'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/discovery/workloads/{id}:
+    get:
+      summary: Get discovered workload details
+      operationId: getDiscoveredWorkload
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Discovered workload details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoveredWorkload'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1504,4 +1740,175 @@ components:
         ends_at:
           type: string
           format: date-time
+
+    ProviderType:
+      type: string
+      enum: [linux_vm, docker, kubernetes]
+
+    ProvisioningStatus:
+      type: string
+      enum: [draft, pending, running, succeeded, failed, rolled_back]
+
+    ProvisioningStepType:
+      type: string
+      enum: [preflight_check, render_configuration, prepare_storage, initialize_database, start_service, verify_readiness]
+
+    StepStatus:
+      type: string
+      enum: [pending, running, succeeded, failed, rolled_back]
+
+    ProvisioningConfig:
+      type: object
+      properties:
+        port:
+          type: integer
+          nullable: true
+        data_directory:
+          type: string
+          nullable: true
+        max_connections:
+          type: integer
+          nullable: true
+        shared_buffers_mb:
+          type: integer
+          nullable: true
+        memory_limit_mb:
+          type: integer
+          nullable: true
+        cpu_limit_cores:
+          type: number
+          nullable: true
+        container_image:
+          type: string
+          nullable: true
+        namespace:
+          type: string
+          nullable: true
+        extra_params:
+          type: object
+          nullable: true
+
+    ProvisioningPlan:
+      type: object
+      required: [id, cluster_id, provider_type, engine, engine_version, config, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        cluster_id:
+          type: string
+          format: uuid
+        host_id:
+          type: string
+          format: uuid
+          nullable: true
+        provider_type:
+          $ref: '#/components/schemas/ProviderType'
+        engine:
+          type: string
+          enum: [postgresql, mysql, mariadb]
+        engine_version:
+          type: string
+        config:
+          $ref: '#/components/schemas/ProvisioningConfig'
+        status:
+          $ref: '#/components/schemas/ProvisioningStatus'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    NewProvisioningPlanRequest:
+      type: object
+      required: [cluster_id, provider_type, engine, engine_version, config]
+      properties:
+        cluster_id:
+          type: string
+          format: uuid
+        host_id:
+          type: string
+          format: uuid
+          nullable: true
+        provider_type:
+          $ref: '#/components/schemas/ProviderType'
+        engine:
+          type: string
+          enum: [postgresql, mysql, mariadb]
+        engine_version:
+          type: string
+        config:
+          $ref: '#/components/schemas/ProvisioningConfig'
+
+    ProvisioningStep:
+      type: object
+      required: [id, plan_id, step_index, step_type, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        plan_id:
+          type: string
+          format: uuid
+        step_index:
+          type: integer
+        step_type:
+          $ref: '#/components/schemas/ProvisioningStepType'
+        status:
+          $ref: '#/components/schemas/StepStatus'
+        error_details:
+          type: string
+          nullable: true
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    DiscoveredWorkload:
+      type: object
+      required: [id, provider_type, workload_name, engine, endpoints, status, last_seen_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        provider_type:
+          $ref: '#/components/schemas/ProviderType'
+        namespace:
+          type: string
+          nullable: true
+        workload_name:
+          type: string
+        engine:
+          type: string
+          enum: [postgresql, mysql, mariadb]
+        detected_version:
+          type: string
+          nullable: true
+        endpoints:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        details:
+          type: object
+          nullable: true
+        last_seen_at:
+          type: string
+          format: date-time
+
+    TriggerScanRequest:
+      type: object
+      properties:
+        provider_type:
+          $ref: '#/components/schemas/ProviderType'
+        namespace:
+          type: string
+          nullable: true
+
 

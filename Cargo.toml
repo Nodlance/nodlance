@@ -9,6 +9,9 @@ members = [
     "crates/nodlance-adapter-mysql",
     "crates/nodlance-agent",
     "crates/nodlance-worker",
+    "crates/nodlance-provider-linux",
+    "crates/nodlance-provider-docker",
+    "crates/nodlance-provider-k8s",
 ]
 
 [workspace.package]
@@ -42,6 +45,10 @@ nodlance-auth = { path = "crates/nodlance-auth" }
 nodlance-db = { path = "crates/nodlance-db" }
 nodlance-domain = { path = "crates/nodlance-domain" }
 nodlance-worker = { path = "crates/nodlance-worker" }
+nodlance-provider-linux = { path = "crates/nodlance-provider-linux" }
+nodlance-provider-docker = { path = "crates/nodlance-provider-docker" }
+nodlance-provider-k8s = { path = "crates/nodlance-provider-k8s" }
+
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

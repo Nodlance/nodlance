@@ -12,6 +12,9 @@ nodlance-adapter-mysql.workspace = true
 nodlance-adapter-postgres.workspace = true
 nodlance-db.workspace = true
 nodlance-domain.workspace = true
+nodlance-provider-docker.workspace = true
+nodlance-provider-k8s.workspace = true
+nodlance-provider-linux.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
@@ -19,6 +22,7 @@ tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 uuid.workspace = true
+
 
 [lints]
 workspace = true

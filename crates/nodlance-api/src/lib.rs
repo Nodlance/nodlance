@@ -108,6 +108,40 @@ pub fn build_app(state: AppState) -> Router {
         // Durable Jobs
         .route("/api/v1/jobs", get(routes::jobs::list_jobs))
         .route("/api/v1/jobs/{id}", get(routes::jobs::get_job))
+        // Provisioning Plans
+        .route(
+            "/api/v1/provisioning/plans",
+            get(routes::provisioning::list_plans).post(routes::provisioning::create_plan),
+        )
+        .route(
+            "/api/v1/provisioning/plans/{id}",
+            get(routes::provisioning::get_plan),
+        )
+        .route(
+            "/api/v1/provisioning/plans/{id}/steps",
+            get(routes::provisioning::list_plan_steps),
+        )
+        .route(
+            "/api/v1/provisioning/plans/{id}/execute",
+            post(routes::provisioning::execute_plan),
+        )
+        .route(
+            "/api/v1/provisioning/plans/{id}/rollback",
+            post(routes::provisioning::rollback_plan),
+        )
+        // Workload Discovery
+        .route(
+            "/api/v1/discovery/scan",
+            post(routes::discovery::trigger_scan),
+        )
+        .route(
+            "/api/v1/discovery/workloads",
+            get(routes::discovery::list_discovered_workloads),
+        )
+        .route(
+            "/api/v1/discovery/workloads/{id}",
+            get(routes::discovery::get_discovered_workload),
+        )
         .with_state(state)
 }
 
@@ -224,6 +258,36 @@ mod tests {
         let cluster_id = uuid::Uuid::now_v7();
         let request = Request::builder()
             .uri(format!("/api/v1/clusters/{cluster_id}/backups"))
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn provisioning_plans_endpoint_requires_authorization() {
+        let app = build_app(AppState::new_test());
+        let request = Request::builder()
+            .uri("/api/v1/provisioning/plans")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn discovery_workloads_endpoint_requires_authorization() {
+        let app = build_app(AppState::new_test());
+        let request = Request::builder()
+            .uri("/api/v1/discovery/workloads")
             .body(Body::empty())
             .unwrap_or_else(|error| panic!("failed to build request: {error}"));
         let response = app

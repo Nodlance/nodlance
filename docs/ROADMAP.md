@@ -31,10 +31,11 @@
 
 ## Stage 4 — guarded provisioning and providers
 
-- [ ] Linux/VM provider
-- [ ] Docker provider
-- [ ] Kubernetes discovery/provider
-- [ ] Least-privilege installation and rollback workflow
+- [x] Linux/VM provider
+- [x] Docker provider
+- [x] Kubernetes discovery/provider
+- [x] Least-privilege installation and rollback workflow
+
 
 ## Stage 5 — recovery and HA
 

@@ -10,6 +10,7 @@ pub mod heartbeat_repo;
 pub mod host_repo;
 pub mod job_repo;
 pub mod observation_repo;
+pub mod provisioning_repo;
 pub mod user_repo;
 
 pub use agent_repo::PgAgentRepository;
@@ -21,6 +22,7 @@ pub use heartbeat_repo::PgHeartbeatRepository;
 pub use host_repo::PgHostRepository;
 pub use job_repo::PgJobRepository;
 pub use observation_repo::PgObservationRepository;
+pub use provisioning_repo::{PgDiscoveryRepository, PgProvisioningRepository};
 pub use user_repo::PgUserRepository;
 
 use nodlance_domain::{DomainError, UserRepository};

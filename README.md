@@ -5,7 +5,7 @@
 
 Nodlance is an open-source platform providing a self-hosted control plane for discovering, monitoring, and safely operating database clusters across heterogeneous environments (Linux bare-metal, VMs, containers, and Kubernetes).
 
-> **Status: Stage 3 — Backup Workflow & Durable Jobs.** The control plane supports PostgreSQL metadata persistence, RBAC-protected authentication, host inventory management, agent enrollment/revocation, telemetry monitoring, cluster topology views, durable leased job execution, and verified database backups with restore drills.
+> **Status: Stage 4 — Guarded Provisioning & Providers.** The control plane supports PostgreSQL metadata persistence, RBAC-protected authentication, host inventory management, agent enrollment/revocation, telemetry monitoring, cluster topology views, durable leased job execution, verified database backups with restore drills, and guarded provisioning across Linux/VM, Docker, and Kubernetes with least-privilege installation and atomic rollback workflows.
 
 ## Project principles
 
@@ -27,6 +27,9 @@ nodlance/
 │   ├── nodlance-auth/              # Argon2 password hashing, JWT tokens, RBAC context
 │   ├── nodlance-adapter-postgres/  # PostgreSQL health, replication probe, and backup adapter
 │   ├── nodlance-adapter-mysql/     # MySQL/MariaDB health, replica status, and backup adapter
+│   ├── nodlance-provider-linux/    # Guarded Linux/VM systemd, preflight, config, and rollback
+│   ├── nodlance-provider-docker/   # Guarded Docker container provisioning with resource limits
+│   ├── nodlance-provider-k8s/      # Kubernetes discovery and declarative StatefulSet provider
 │   ├── nodlance-agent/             # Lightweight host monitoring daemon binary
 │   ├── nodlance-worker/            # Background worker daemon running leased operations
 │   └── nodlance-api/               # Axum HTTP API, middleware, route handlers
@@ -113,6 +116,15 @@ This starts PostgreSQL and the Nodlance API control plane with automatic databas
 | `GET` | `/api/v1/backups/{id}/drills/latest` | `host:read` | Get latest validation drill result |
 | `GET` | `/api/v1/jobs` | `audit:read` / `host:read` | List durable background jobs |
 | `GET` | `/api/v1/jobs/{id}` | `audit:read` / `host:read` | Get durable job details by ID |
+| `POST` | `/api/v1/provisioning/plans` | `host:write` | Create guarded database provisioning plan |
+| `GET` | `/api/v1/provisioning/plans` | `host:read` | List guarded provisioning plans |
+| `GET` | `/api/v1/provisioning/plans/{id}` | `host:read` | Get provisioning plan details |
+| `GET` | `/api/v1/provisioning/plans/{id}/steps` | `host:read` | Get step progression for provisioning plan |
+| `POST` | `/api/v1/provisioning/plans/{id}/execute` | `host:write` | Enqueue execution of provisioning plan |
+| `POST` | `/api/v1/provisioning/plans/{id}/rollback` | `host:write` | Enqueue rollback compensation for plan |
+| `POST` | `/api/v1/discovery/scan` | `host:write` | Trigger workload discovery scan |
+| `GET` | `/api/v1/discovery/workloads` | `host:read` | List discovered database workloads |
+| `GET` | `/api/v1/discovery/workloads/{id}` | `host:read` | Get discovered workload details |
 | `GET` | `/api/v1/alerts/rules` | `audit:read` | List alert evaluation rules |
 | `GET` | `/api/v1/alerts` | `audit:read` | List active alert incidents |
 | `POST` | `/api/v1/alerts/{id}/acknowledge` | `host:write` | Acknowledge active alert incident |

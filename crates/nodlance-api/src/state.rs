@@ -2,8 +2,8 @@
 
 use nodlance_db::{
     PgAgentRepository, PgAlertRepository, PgAuditRepository, PgBackupRepository,
-    PgClusterRepository, PgHeartbeatRepository, PgHostRepository, PgJobRepository,
-    PgObservationRepository, PgUserRepository,
+    PgClusterRepository, PgDiscoveryRepository, PgHeartbeatRepository, PgHostRepository,
+    PgJobRepository, PgObservationRepository, PgProvisioningRepository, PgUserRepository,
 };
 use sqlx::PgPool;
 
@@ -21,6 +21,8 @@ pub struct AppState {
     pub alert_repo: PgAlertRepository,
     pub job_repo: PgJobRepository,
     pub backup_repo: PgBackupRepository,
+    pub provisioning_repo: PgProvisioningRepository,
+    pub discovery_repo: PgDiscoveryRepository,
 }
 
 impl AppState {
@@ -36,6 +38,8 @@ impl AppState {
             alert_repo: PgAlertRepository::new(pool.clone()),
             job_repo: PgJobRepository::new(pool.clone()),
             backup_repo: PgBackupRepository::new(pool.clone()),
+            provisioning_repo: PgProvisioningRepository::new(pool.clone()),
+            discovery_repo: PgDiscoveryRepository::new(pool.clone()),
             db: Some(pool),
             jwt_secret,
         }
@@ -58,6 +62,8 @@ impl AppState {
             alert_repo: PgAlertRepository::new(pool.clone()),
             job_repo: PgJobRepository::new(pool.clone()),
             backup_repo: PgBackupRepository::new(pool.clone()),
+            provisioning_repo: PgProvisioningRepository::new(pool.clone()),
+            discovery_repo: PgDiscoveryRepository::new(pool.clone()),
             db: None,
             jwt_secret: "test-secret-key-that-is-at-least-32-bytes-long".to_string(),
         }
