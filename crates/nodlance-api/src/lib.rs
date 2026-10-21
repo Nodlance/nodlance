@@ -9,13 +9,29 @@ pub use auth::AuthUser;
 pub use error::ApiError;
 pub use state::AppState;
 
+use std::path::Path;
+
 use axum::{
     Router,
     routing::{get, post},
 };
+use tower_http::services::{ServeDir, ServeFile};
 
 /// Builds the API router with all registered routes and state.
 pub fn build_app(state: AppState) -> Router {
+    let static_path = if let Ok(custom_dir) = std::env::var("NODLANCE_STATIC_DIR") {
+        custom_dir
+    } else if Path::new("ui/dist/index.html").exists() {
+        "ui/dist".to_string()
+    } else if Path::new("crates/nodlance-api/static/index.html").exists() {
+        "crates/nodlance-api/static".to_string()
+    } else if Path::new("static/index.html").exists() {
+        "static".to_string()
+    } else {
+        "ui/dist".to_string()
+    };
+    let serve_dir =
+        ServeDir::new(&static_path).fallback(ServeFile::new(format!("{static_path}/index.html")));
     Router::new()
         // Health probes
         .route("/health/live", get(routes::health::health_live))
@@ -167,6 +183,7 @@ pub fn build_app(state: AppState) -> Router {
             "/api/v1/recovery/fault-injection",
             post(routes::recovery::run_fault_injection),
         )
+        .fallback_service(serve_dir)
         .with_state(state)
 }
 
@@ -363,5 +380,20 @@ mod tests {
             .await
             .unwrap_or_else(|error| panic!("router failed: {error}"));
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn static_ui_root_endpoint_returns_ok() {
+        let app = build_app(AppState::new_test());
+        let request = Request::builder()
+            .uri("/")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+
+        assert_eq!(response.status(), StatusCode::OK);
     }
 }

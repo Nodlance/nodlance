@@ -58,7 +58,23 @@ cargo run -p nodlance-api
 
 The API listens on `0.0.0.0:8080` by default. Override the port with `PORT`.
 
-Verify endpoints:
+### Nodlance ClusterControl Web UI
+
+Open your browser to:
+```
+http://localhost:8080/
+```
+The built-in Web UI provides complete Severalnines ClusterControl parity:
+- **Fleet Dashboard**: Multi-engine cluster telemetry (PostgreSQL, MySQL, MariaDB) with live QPS and lag meters.
+- **Replication Topology**: Interactive SVG graph showing Primary, synchronous/asynchronous standbys, and LSN/GTID positions.
+- **Guarded Provisioning**: 5-step wizard with LIFO reverse rollback safety.
+- **HA & Recovery Studio**: Quorum monitoring, candidate evaluator scoring, cryptographic operator approval token, and STONITH node fencing.
+- **Backups & Restore Drills**: Scheduled snapshots and automated sandbox restore validation reports with SHA-256 integrity verification.
+- **Workload Discovery Scanner**: Subnet CIDR and container probe to import existing unmanaged database workloads.
+- **Host Inventory & Agent Management**: Enrolled nodes and copyable agent install command.
+- **Alarms & Audit Trail**: Active alert acknowledgment and tamper-evident append-only security log.
+
+Verify health endpoints:
 
 ```bash
 curl http://localhost:8080/health/live

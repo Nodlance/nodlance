@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nodlance | Enterprise Database ClusterControl</title>
+  <meta name="description" content="Nodlance ClusterControl - High-availability database operations, replication topology, guarded provisioning, and automated recovery for PostgreSQL, MySQL, and MariaDB.">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="light-theme">
+  <!-- Top Navigation Header -->
+  <header class="top-nav" id="topNav">
+    <div class="nav-left">
+      <div class="brand-container">
+        <img src="/assets/logo.svg" alt="Nodlance Logo" class="brand-logo" id="brandLogo">
+        <span class="brand-badge">ClusterControl</span>
+      </div>
+      <div class="cluster-quick-select-wrap">
+        <label for="clusterSelect" class="sr-only">Active Cluster</label>
+        <select id="clusterSelect" class="cluster-select" title="Switch active database cluster">
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+    </div>
+
+    <!-- Cluster Fleet Summary Pills (ClusterControl signature) -->
+    <div class="fleet-pill-bar" id="fleetSummaryBar">
+      <div class="stat-pill" title="Total active managed database clusters">
+        <span class="pill-dot emerald"></span>
+        <span class="pill-label">Clusters:</span>
+        <span class="pill-val" id="statClusterCount">3</span>
+      </div>
+      <div class="stat-pill" title="Total managed database nodes">
+        <span class="pill-dot sky"></span>
+        <span class="pill-label">Nodes:</span>
+        <span class="pill-val" id="statNodeCount">8</span>
+      </div>
+      <div class="stat-pill" title="Active alerts requiring attention">
+        <span class="pill-dot amber" id="statAlertDot"></span>
+        <span class="pill-label">Alerts:</span>
+        <span class="pill-val" id="statAlertCount">1</span>
+      </div>
+      <div class="stat-pill" title="Global HA Quorum status across clusters">
+        <span class="pill-dot emerald"></span>
+        <span class="pill-label">Quorum:</span>
+        <span class="pill-val" id="statQuorumVal">Healthy</span>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <!-- Theme Switcher (Light Default, Dark Optional) -->
+      <button class="theme-toggle-btn" id="themeToggleBtn" title="Switch between Light and Dark mode" aria-label="Toggle theme">
+        <svg class="theme-icon sun-icon" id="sunIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="theme-icon moon-icon" id="moonIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+        </svg>
+        <span class="theme-label" id="themeLabel">Light</span>
+      </button>
+
+      <!-- Data Mode Switcher (Live API vs Demo Fleet) -->
+      <button class="mode-toggle-btn" id="modeToggleBtn" title="Switch between live backend API and pre-seeded enterprise demo telemetry">
+        <span class="mode-dot live"></span>
+        <span class="mode-text" id="modeText">Demo Fleet</span>
+      </button>
+
+      <!-- Primary Action Buttons -->
+      <button class="btn btn-secondary btn-sm" id="btnOpenDiscovery" title="Scan infrastructure for unmanaged database instances">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <span>Discover</span>
+      </button>
+      <button class="btn btn-primary btn-sm" id="btnOpenDeployWizard" title="Deploy a new high-availability database cluster">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Deploy Cluster</span>
+      </button>
+
+      <!-- User Profile / Session -->
+      <div class="user-menu-wrap">
+        <div class="user-avatar" id="userMenuBtn" tabindex="0" role="button" aria-label="User account settings">
+          <span class="avatar-text">AD</span>
+          <span class="online-indicator"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Body -->
+  <div class="app-layout">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-nav" aria-label="Primary Navigation">
+        <div class="nav-section-title">CLUSTER OPERATIONS</div>
+        <button class="nav-item active" data-view="fleet" id="navFleet">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+          <span>Fleet Overview</span>
+        </button>
+        <button class="nav-item" data-view="topology" id="navTopology">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><circle cx="6" cy="19" r="3"/><circle cx="18" cy="19" r="3"/><path d="M12 8v4"/><path d="m6.8 16.2 3.4-3.4"/><path d="m17.2 16.2-3.4-3.4"/></svg>
+          <span>Topology & Nodes</span>
+        </button>
+        <button class="nav-item" data-view="ha-recovery" id="navHaRecovery">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+          <span>HA & Recovery</span>
+          <span class="nav-badge" id="navBadgeHa">Quorum</span>
+        </button>
+        <button class="nav-item" data-view="backups" id="navBackups">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          <span>Backups & Drills</span>
+        </button>
+
+        <div class="nav-section-title">PROVISIONING & INFRA</div>
+        <button class="nav-item" data-view="provisioning" id="navProvisioning">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+          <span>Guarded Provision</span>
+        </button>
+        <button class="nav-item" data-view="discovery" id="navDiscovery">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20"/><path d="M20 12v8H4v-8"/><path d="m4 4 16 0"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Discovery Scanner</span>
+        </button>
+        <button class="nav-item" data-view="hosts" id="navHosts">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+          <span>Host Inventory</span>
+        </button>
+
+        <div class="nav-section-title">OBSERVABILITY & AUDIT</div>
+        <button class="nav-item" data-view="alarms" id="navAlarms">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span>Active Alarms</span>
+          <span class="nav-badge alert-count" id="navBadgeAlerts">1</span>
+        </button>
+        <button class="nav-item" data-view="audit" id="navAudit">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span>Audit Log</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer: System Status -->
+      <div class="sidebar-footer">
+        <div class="system-status-card">
+          <div class="sys-status-head">
+            <span class="pulse-indicator"></span>
+            <span class="sys-title">Nodlance Controller</span>
+          </div>
+          <div class="sys-meta">v0.1.0-alpha • Axum 0.8 Engine</div>
+          <div class="sys-meta" id="sysUptime">Uptime: 4d 18h 22m</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Container -->
+    <main class="content-area" id="mainContent" role="main">
+      <!-- 1. FLEET OVERVIEW VIEW -->
+      <section class="view-panel active" id="viewFleet">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Database Fleet Overview</h1>
+            <p class="view-subtitle">Real-time status, health metrics, and replication telemetry across all managed database clusters.</p>
+          </div>
+          <div class="view-actions">
+            <div class="filter-group">
+              <button class="filter-btn active" data-engine="all">All Engines</button>
+              <button class="filter-btn" data-engine="postgres">PostgreSQL</button>
+              <button class="filter-btn" data-engine="mysql">MySQL</button>
+              <button class="filter-btn" data-engine="mariadb">MariaDB</button>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnRefreshFleet">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Global Telemetry Cards -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">TOTAL CLUSTER THROUGHPUT</div>
+            <div class="metric-val" id="metricQps">14,820 <span class="metric-unit">QPS</span></div>
+            <div class="metric-trend positive">↑ 8.4% from last hour</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">AVG REPLICATION LAG</div>
+            <div class="metric-val" id="metricAvgLag">18 <span class="metric-unit">ms</span></div>
+            <div class="metric-trend neutral">Within SLA (&lt; 100ms)</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">AGGREGATE STORAGE</div>
+            <div class="metric-val" id="metricStorage">1.84 <span class="metric-unit">TB</span></div>
+            <div class="metric-trend neutral">46% Capacity Used</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">HA QUORUM STABILITY</div>
+            <div class="metric-val text-emerald" id="metricQuorumState">100%</div>
+            <div class="metric-trend positive">All epochs synchronized</div>
+          </div>
+        </div>
+
+        <!-- Clusters Grid -->
+        <div class="cluster-cards-grid" id="clusterCardsContainer">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </section>
+
+      <!-- 2. TOPOLOGY & NODES VIEW (Severalnines signature) -->
+      <section class="view-panel" id="viewTopology">
+        <div class="view-header">
+          <div>
+            <div class="cluster-breadcrumbs">
+              <span class="crumb-parent">Clusters</span>
+              <span class="crumb-sep">/</span>
+              <span class="crumb-current" id="topoClusterName">prod-pg16-ha-primary</span>
+            </div>
+            <h1 class="view-title">Replication Topology & Node Graph</h1>
+            <p class="view-subtitle">Live interactive replication hierarchy, WAL/GTID positions, latency indicators, and node-level control actions.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-secondary btn-sm" id="btnTestFailover" title="Open HA Failover Studio for this cluster">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m11 17 5-5-5-5"/><path d="M18 12H4"/></svg>
+              <span>HA Failover Studio</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnTriggerNodeBackup">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
+              <span>Take Backup</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive SVG Topology Graph Container -->
+        <div class="topology-canvas-card">
+          <div class="topology-toolbar">
+            <div class="topo-legend">
+              <span class="legend-item"><span class="legend-node primary"></span> Primary / Leader</span>
+              <span class="legend-item"><span class="legend-node sync"></span> Sync Standby</span>
+              <span class="legend-item"><span class="legend-node async"></span> Async Standby</span>
+              <span class="legend-item"><span class="legend-node fenced"></span> Fenced / Isolated</span>
+              <span class="legend-item"><span class="legend-node vip"></span> Virtual IP / Proxy</span>
+            </div>
+            <div class="topo-controls">
+              <span class="refresh-badge"><span class="pulse-indicator"></span> Live Replication Stream</span>
+            </div>
+          </div>
+
+          <div class="topology-svg-wrapper" id="topologySvgWrapper">
+            <!-- Dynamic SVG rendered by app.js -->
+          </div>
+        </div>
+
+        <!-- Node List Table with Deep Telemetry -->
+        <div class="card table-card">
+          <div class="card-header">
+            <h2 class="card-title">Cluster Node Instances</h2>
+            <span class="table-subtitle">Select any node row to view comprehensive diagnostics, buffer cache stats, and fencing triggers.</span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="nodesTable">
+              <thead>
+                <tr>
+                  <th>Node ID / Host</th>
+                  <th>Role</th>
+                  <th>State</th>
+                  <th>IP / Port</th>
+                  <th>Replication Lag</th>
+                  <th>WAL / GTID LSN</th>
+                  <th>CPU / Mem</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="nodesTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. HA & RECOVERY STUDIO VIEW -->
+      <section class="view-panel" id="viewHaRecovery">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">High Availability, Fencing & Recovery Studio</h1>
+            <p class="view-subtitle">Guarded failover orchestration, candidate scoring, epoch management, STONITH verifiable fencing, and fault-injection testing.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-danger btn-sm" id="btnLaunchFaultInjection">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <span>Simulate Fault Injection</span>
+            </button>
+            <button class="btn btn-primary btn-sm" id="btnRequestPromotion">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span>Orchestrate Failover</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quorum & Epoch Status Strip -->
+        <div class="ha-status-grid">
+          <div class="ha-stat-box">
+            <div class="ha-stat-label">CLUSTER QUORUM STATUS</div>
+            <div class="ha-stat-value text-emerald" id="haQuorumStatus">Achieved (3/3 Votes)</div>
+            <div class="ha-stat-sub">Strict majority consensus maintained</div>
+          </div>
+          <div class="ha-stat-box">
+            <div class="ha-stat-label">ACTIVE RECOVERY EPOCH</div>
+            <div class="ha-stat-value" id="haEpochValue">Epoch #4 • Term 12</div>
+            <div class="ha-stat-sub" id="haLeaderUuid">Leader: db-pg-node-01 (Active)</div>
+          </div>
+          <div class="ha-stat-box">
+            <div class="ha-stat-label">SPLIT-BRAIN FENCING</div>
+            <div class="ha-stat-value text-sky">STONITH Enabled</div>
+            <div class="ha-stat-sub">Automated watchdog & network isolation</div>
+          </div>
+        </div>
+
+        <!-- Promotion Candidate Ranking Table -->
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Standby Promotion Candidates (Scored by Nodlance Recovery Engine)</h2>
+              <p class="card-desc">Weighted ranking combining LSN distance, replication lag, health heartbeats, and node configuration weights.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="candidatesTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Node ID / Host</th>
+                  <th>Lag (Bytes / ms)</th>
+                  <th>LSN Position</th>
+                  <th>Health Status</th>
+                  <th>Composite Score</th>
+                  <th>Eligibility</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="candidatesTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Fencing & Isolation History -->
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Verifiable Node Fencing Audit (STONITH & Network Isolation)</h2>
+              <p class="card-desc">Cryptographic and execution proof of decommissioned or partitioned nodes to eliminate split-brain write risk.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnManualFenceModal">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" x2="12" y1="2" y2="12"/></svg>
+              <span>Execute Fencing</span>
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="fencingTable">
+              <thead>
+                <tr>
+                  <th>Fencing ID</th>
+                  <th>Target Node</th>
+                  <th>Mechanism</th>
+                  <th>Trigger Reason</th>
+                  <th>Operator / Agent</th>
+                  <th>Verification Status</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="fencingTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. GUARDED PROVISIONING WIZARD VIEW -->
+      <section class="view-panel" id="viewProvisioning">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Guarded Cluster Provisioning</h1>
+            <p class="view-subtitle">Multi-step cluster deployment with LIFO reverse rollback safety guarantees across Baremetal, Docker, and Kubernetes.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-primary btn-sm" id="btnStartWizard">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              <span>New Cluster Wizard</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Provisioning Plans Overview -->
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Execution Plans & Rollback Logs</h2>
+              <p class="card-desc">Stateful provisioning plans, step tracking, and verified rollbacks.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="plansTable">
+              <thead>
+                <tr>
+                  <th>Plan ID</th>
+                  <th>Cluster Target</th>
+                  <th>Provider</th>
+                  <th>Engine</th>
+                  <th>Total Steps</th>
+                  <th>Status</th>
+                  <th>Created At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="plansTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. BACKUPS & RESTORE DRILLS VIEW -->
+      <section class="view-panel" id="viewBackups">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Backups & Automated Restore Drills</h1>
+            <p class="view-subtitle">Physical snapshots, continuous WAL/binlog archiving, retention enforcement, and isolated restore qualification drills.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-primary btn-sm" id="btnCreateBackupModal">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
+              <span>Take Cluster Backup</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Completed Database Snapshots</h2>
+              <p class="card-desc">Cryptographically verified snapshots with SHA-256 checksums.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="backupsTable">
+              <thead>
+                <tr>
+                  <th>Backup ID</th>
+                  <th>Cluster</th>
+                  <th>Type</th>
+                  <th>Engine</th>
+                  <th>Size</th>
+                  <th>SHA-256 Checksum</th>
+                  <th>Verification Status</th>
+                  <th>Completed At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="backupsTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Automated Restore Qualification Drills</h2>
+              <p class="card-desc">Scheduled sandbox drills verifying snapshot bootability and transactional consistency without impacting production.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="drillsTable">
+              <thead>
+                <tr>
+                  <th>Drill ID</th>
+                  <th>Source Backup</th>
+                  <th>Target Sandbox</th>
+                  <th>Duration</th>
+                  <th>Corruption Found</th>
+                  <th>Result</th>
+                  <th>Completed At</th>
+                </tr>
+              </thead>
+              <tbody id="drillsTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. DISCOVERY SCANNER VIEW -->
+      <section class="view-panel" id="viewDiscovery">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Workload Discovery Scanner</h1>
+            <p class="view-subtitle">Scan subnets, local Docker daemon, or Kubernetes pods for existing unmanaged PostgreSQL, MySQL, and MariaDB instances.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-primary btn-sm" id="btnTriggerScanModal">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span>Run Discovery Scan</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Discovered Unmanaged Workloads</h2>
+              <p class="card-desc">Import existing unmanaged database workloads directly into Nodlance ClusterControl with zero downtime.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="discoveryTable">
+              <thead>
+                <tr>
+                  <th>Workload ID</th>
+                  <th>Host / IP</th>
+                  <th>Port</th>
+                  <th>Detected Engine</th>
+                  <th>Version</th>
+                  <th>Topology Role</th>
+                  <th>Discovered At</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="discoveryTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. HOST INVENTORY & AGENTS VIEW -->
+      <section class="view-panel" id="viewHosts">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Host Inventory & Agent Management</h1>
+            <p class="view-subtitle">Physical servers, virtual machines, container hosts, and enrolled Nodlance agent daemons.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-primary btn-sm" id="btnEnrollHostModal">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+              <span>Enroll New Host</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Registered Host Infrastructure</h2>
+              <p class="card-desc">Live agent heartbeats, CPU/memory telemetry, and SSH/systemd enrollment tokens.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="hostsTable">
+              <thead>
+                <tr>
+                  <th>Host Name</th>
+                  <th>IP Address</th>
+                  <th>OS Distribution</th>
+                  <th>Agent Status</th>
+                  <th>Heartbeat</th>
+                  <th>CPU Usage</th>
+                  <th>RAM Usage</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="hostsTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. ALARMS & AUDIT TRAIL VIEW -->
+      <section class="view-panel" id="viewAlarms">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Active Alarms & Incident Management</h1>
+            <p class="view-subtitle">High-severity alerts, replication thresholds, disk pressure warnings, and maintenance suppression.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-secondary btn-sm" id="btnScheduleMaintModal">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              <span>Schedule Maintenance</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Active Alerts</h2>
+              <p class="card-desc">Acknowledge alarms to notify teammates or silence during known maintenance.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="alertsTable">
+              <thead>
+                <tr>
+                  <th>Severity</th>
+                  <th>Cluster / Node</th>
+                  <th>Alert Rule</th>
+                  <th>Message</th>
+                  <th>Triggered At</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="alertsTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. AUDIT LOG VIEW -->
+      <section class="view-panel" id="viewAudit">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Tamper-Evident Audit Trail</h1>
+            <p class="view-subtitle">Append-only security log recording every failover, configuration change, user login, and fencing event.</p>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Audit Log Entries</h2>
+              <p class="card-desc">Cryptographically attributable operator and automated agent activities.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="auditTable">
+              <thead>
+                <tr>
+                  <th>Event ID</th>
+                  <th>Timestamp</th>
+                  <th>Actor</th>
+                  <th>Action</th>
+                  <th>Resource Target</th>
+                  <th>Status</th>
+                  <th>Client IP</th>
+                </tr>
+              </thead>
+              <tbody id="auditTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODALS CONTAINER -->
+  <!-- 1. Deploy Cluster Wizard Modal -->
+  <div class="modal-backdrop" id="deployWizardModal" aria-hidden="true" role="dialog" aria-labelledby="wizardTitle">
+    <div class="modal-window modal-lg">
+      <div class="modal-header">
+        <div class="wizard-header-info">
+          <h2 class="modal-title" id="wizardTitle">Deploy Database Cluster</h2>
+          <span class="wizard-step-counter">Step <span id="wizardStepNum">1</span> of 5</span>
+        </div>
+        <button class="modal-close-btn" data-close-modal>&times;</button>
+      </div>
+
+      <div class="wizard-progress-bar">
+        <div class="wizard-progress-fill" id="wizardProgressFill" style="width: 20%;"></div>
+      </div>
+
+      <div class="modal-body wizard-body">
+        <!-- Step 1: Infrastructure Provider -->
+        <div class="wizard-step active" data-step="1">
+          <h3 class="step-title">Select Infrastructure Provider</h3>
+          <p class="step-desc">Choose where your database cluster instances will be provisioned.</p>
+          <div class="provider-cards-grid">
+            <label class="provider-option selected">
+              <input type="radio" name="wizProvider" value="linux" checked>
+              <div class="provider-card">
+                <svg class="provider-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <span class="provider-name">Linux Baremetal / VM</span>
+                <span class="provider-info">SSH, systemd unit supervisor, native disk I/O</span>
+              </div>
+            </label>
+            <label class="provider-option">
+              <input type="radio" name="wizProvider" value="docker">
+              <div class="provider-card">
+                <svg class="provider-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11h16"/><path d="M4 15h16"/><path d="M4 19h16"/><path d="M7 7h4v4H7z"/></svg>
+                <span class="provider-name">Docker Engine</span>
+                <span class="provider-info">Isolated container runtimes, custom bridge network</span>
+              </div>
+            </label>
+            <label class="provider-option">
+              <input type="radio" name="wizProvider" value="k8s">
+              <div class="provider-card">
+                <svg class="provider-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="12 6 17 15 7 15"/></svg>
+                <span class="provider-name">Kubernetes</span>
+                <span class="provider-info">StatefulSets, PersistentVolumeClaims, Headless service</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Step 2: Database Engine -->
+        <div class="wizard-step" data-step="2">
+          <h3 class="step-title">Select Database Engine & Version</h3>
+          <p class="step-desc">Choose the relational database engine and target version.</p>
+          <div class="engine-cards-grid">
+            <label class="engine-option selected">
+              <input type="radio" name="wizEngine" value="postgres" checked>
+              <div class="engine-card">
+                <span class="engine-tag pg">PG</span>
+                <span class="engine-name">PostgreSQL 16 HA</span>
+                <span class="engine-detail">Streaming replication with synchronous commit & slots</span>
+              </div>
+            </label>
+            <label class="engine-option">
+              <input type="radio" name="wizEngine" value="mysql">
+              <div class="engine-card">
+                <span class="engine-tag my">MY</span>
+                <span class="engine-name">MySQL 8.4 LTS</span>
+                <span class="engine-detail">Group Replication with GTID auto-positioning</span>
+              </div>
+            </label>
+            <label class="engine-option">
+              <input type="radio" name="wizEngine" value="mariadb">
+              <div class="engine-card">
+                <span class="engine-tag ma">MA</span>
+                <span class="engine-name">MariaDB 11.4 Galera</span>
+                <span class="engine-detail">Multi-master synchronous cluster with wsrep provider</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Step 3: Cluster Topology Configuration -->
+        <div class="wizard-step" data-step="3">
+          <h3 class="step-title">Configure Cluster Topology</h3>
+          <div class="form-group">
+            <label for="wizClusterName" class="form-label">Cluster Identifier</label>
+            <input type="text" id="wizClusterName" class="form-input" value="prod-pg16-analytics" placeholder="e.g. prod-db-cluster-01">
+          </div>
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="wizNodeCount" class="form-label">Node Count (Quorum)</label>
+              <select id="wizNodeCount" class="form-input">
+                <option value="3" selected>3 Nodes (1 Primary, 2 Standbys - HA Quorum)</option>
+                <option value="5">5 Nodes (1 Primary, 4 Standbys - Multi-AZ Quorum)</option>
+                <option value="2">2 Nodes + 1 Arbiter</option>
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label for="wizPort" class="form-label">Database Port</label>
+              <input type="number" id="wizPort" class="form-input" value="5432">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="wizAdminUser" class="form-label">Admin Username</label>
+              <input type="text" id="wizAdminUser" class="form-input" value="postgres">
+            </div>
+            <div class="form-group col-6">
+              <label for="wizAdminPass" class="form-label">Admin Password</label>
+              <input type="password" id="wizAdminPass" class="form-input" value="StrongClusterPassw0rd!">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Host Assignment -->
+        <div class="wizard-step" data-step="4">
+          <h3 class="step-title">Assign Infrastructure Hosts</h3>
+          <p class="step-desc">Designate target hosts from your registered inventory for Primary and Standby roles.</p>
+          <div class="assigned-hosts-list" id="wizHostsList">
+            <div class="host-assign-row">
+              <span class="host-role-badge primary">Primary</span>
+              <span class="host-assign-name">srv-node-01.prod (192.168.10.21)</span>
+              <span class="host-assign-state text-emerald">Verified</span>
+            </div>
+            <div class="host-assign-row">
+              <span class="host-role-badge sync">Standby 1</span>
+              <span class="host-assign-name">srv-node-02.prod (192.168.10.22)</span>
+              <span class="host-assign-state text-emerald">Verified</span>
+            </div>
+            <div class="host-assign-row">
+              <span class="host-role-badge async">Standby 2</span>
+              <span class="host-assign-name">srv-node-03.prod (192.168.10.23)</span>
+              <span class="host-assign-state text-emerald">Verified</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: LIFO Rollback Plan Review -->
+        <div class="wizard-step" data-step="5">
+          <h3 class="step-title">Guarded Execution Plan (with LIFO Rollback)</h3>
+          <p class="step-desc">Review the ordered provisioning plan steps. If any step fails, Nodlance executes strict reverse LIFO rollback to leave hosts untouched.</p>
+          <div class="plan-steps-preview" id="wizPlanStepsPreview">
+            <div class="plan-step-item">
+              <span class="step-seq">1</span>
+              <span class="step-title-text">Pre-flight Environment Validation & Port Verification</span>
+            </div>
+            <div class="plan-step-item">
+              <span class="step-seq">2</span>
+              <span class="step-title-text">Initialize Primary Node Data Directory & SSL Certificates</span>
+            </div>
+            <div class="plan-step-item">
+              <span class="step-seq">3</span>
+              <span class="step-title-text">Configure Replication Slots & pg_hba.conf Authentication</span>
+            </div>
+            <div class="plan-step-item">
+              <span class="step-seq">4</span>
+              <span class="step-title-text">Execute Standby pg_basebackup Clone & Start Services</span>
+            </div>
+            <div class="plan-step-item">
+              <span class="step-seq">5</span>
+              <span class="step-title-text">Establish Epoch #1 & Verify Quorum Consensus</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="wizBtnBack" style="display: none;">Back</button>
+        <button class="btn btn-primary" id="wizBtnNext">Next: Engine Selection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. HA Failover & Operator Promotion Modal -->
+  <div class="modal-backdrop" id="failoverModal" aria-hidden="true" role="dialog">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Promote Standby Node (Guarded Failover)</h2>
+        <button class="modal-close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert-box warning">
+          <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+          <div class="alert-content">
+            <div class="alert-title">Operator Approval Required (Two-Man Rule)</div>
+            <div class="alert-text">Promoting a replica triggers STONITH fencing on the existing primary to prevent split-brain writes and increments the cluster epoch.</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="promoteCandidateSelect" class="form-label">Select Standby Node to Promote</label>
+          <select id="promoteCandidateSelect" class="form-input">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="promoteTokenInput" class="form-label">Operator Approval Token</label>
+          <div class="input-with-action">
+            <input type="text" id="promoteTokenInput" class="form-input font-mono" readonly value="tok_prom_9f8b4c2a1e0d3789">
+            <button class="btn btn-secondary btn-sm" id="btnRegenToken">Generate Token</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-checkbox-label">
+            <input type="checkbox" id="chkFenceOldPrimary" checked>
+            <span>Automatically trigger STONITH fencing against old primary node</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal>Cancel</button>
+        <button class="btn btn-danger" id="btnExecutePromotion">Confirm & Promote Candidate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. STONITH Node Fencing Modal -->
+  <div class="modal-backdrop" id="fenceModal" aria-hidden="true" role="dialog">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Execute Verifiable Node Fencing (STONITH)</h2>
+        <button class="modal-close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert-box danger">
+          <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+          <div class="alert-content">
+            <div class="alert-title">Irrevocable Node Isolation</div>
+            <div class="alert-text">Target node will be instantly cut from client traffic and storage to protect data integrity.</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="fenceNodeSelect" class="form-label">Target Node</label>
+          <select id="fenceNodeSelect" class="form-input">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="fenceMechanismSelect" class="form-label">Fencing Mechanism</label>
+          <select id="fenceMechanismSelect" class="form-input">
+            <option value="stonith">STONITH (Shoot The Other Node In The Head - Hard Power Off)</option>
+            <option value="network">Network Isolation (iptables / Security Group Drop)</option>
+            <option value="storage">Storage Revocation (SCSI Reservation Revoke)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="fenceReasonInput" class="form-label">Reason for Fencing</label>
+          <input type="text" id="fenceReasonInput" class="form-input" placeholder="e.g. Unresponsive heartbeat / suspected split-brain" value="Unresponsive replication heartbeat &gt; 30s">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal>Cancel</button>
+        <button class="btn btn-danger" id="btnConfirmFence">Isolate & Fence Node</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. On-Demand Backup Modal -->
+  <div class="modal-backdrop" id="backupModal" aria-hidden="true" role="dialog">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Trigger On-Demand Cluster Backup</h2>
+        <button class="modal-close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="backupClusterSelect" class="form-label">Target Cluster</label>
+          <select id="backupClusterSelect" class="form-input">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="backupTypeSelect" class="form-label">Backup Type</label>
+          <select id="backupTypeSelect" class="form-input">
+            <option value="full">Full Physical Snapshot (pg_basebackup / xtrabackup)</option>
+            <option value="incremental">Incremental WAL / Binlog Stream</option>
+            <option value="logical">Logical Schema & Data Dump</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="backupTargetSelect" class="form-label">Storage Target</label>
+          <select id="backupTargetSelect" class="form-input">
+            <option value="s3">Primary Object Store (MinIO / AWS S3 - eu-central)</option>
+            <option value="zfs">Local ZFS Encrypted Storage Pool (/mnt/backups)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-checkbox-label">
+            <input type="checkbox" id="chkAutoVerifyBackup" checked>
+            <span>Trigger automated restore qualification drill upon completion</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal>Cancel</button>
+        <button class="btn btn-primary" id="btnSubmitBackup">Start Backup Job</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Discovery Scanner Trigger Modal -->
+  <div class="modal-backdrop" id="scanModal" aria-hidden="true" role="dialog">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Run Infrastructure Workload Discovery</h2>
+        <button class="modal-close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="scanTargetType" class="form-label">Discovery Domain</label>
+          <select id="scanTargetType" class="form-input">
+            <option value="subnet">Network Subnet CIDR (TCP Port Probe)</option>
+            <option value="docker">Local Docker Daemon (/var/run/docker.sock)</option>
+            <option value="k8s">Kubernetes Namespaces (Core API Pod Scan)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="scanCidrInput" class="form-label">Target Subnet / Namespace</label>
+          <input type="text" id="scanCidrInput" class="form-input" value="192.168.10.0/24">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Probe Ports</label>
+          <div class="checkbox-group">
+            <label class="form-checkbox-label"><input type="checkbox" checked> 5432 (PostgreSQL)</label>
+            <label class="form-checkbox-label"><input type="checkbox" checked> 3306 (MySQL / MariaDB)</label>
+            <label class="form-checkbox-label"><input type="checkbox" checked> 4567 (Galera wsrep)</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal>Cancel</button>
+        <button class="btn btn-primary" id="btnRunScan">Start Discovery Scan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Enroll Agent Modal -->
+  <div class="modal-backdrop" id="enrollModal" aria-hidden="true" role="dialog">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Enroll New Host Agent</h2>
+        <button class="modal-close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="step-desc">Run this single command as root on your target Linux host to install the lightweight Nodlance telemetry daemon and securely connect to the control plane.</p>
+        <div class="form-group">
+          <label class="form-label">One-Line Agent Install Command</label>
+          <div class="code-box">
+            <code id="enrollCmdText">curl -sSL https://nodlance.internal/install.sh | sudo NODLANCE_TOKEN="nl_agt_enroll_e8d7a1b4" sh</code>
+            <button class="btn btn-secondary btn-sm" id="btnCopyEnrollCmd">Copy</button>
+          </div>
+        </div>
+        <div class="enroll-status-box">
+          <span class="pulse-indicator"></span>
+          <span>Waiting for inbound host heartbeat from target node...</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Application Logic -->
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -44,3 +44,16 @@
 - [x] Coordination/quorum and stale-command controls
 - [x] Fault-injection qualification
 - [x] Automatic failover only after documented safety gates
+
+## Stage 6 — ClusterControl Web UI MVP (Severalnines Parity)
+
+- [x] Embedded Axum 0.8 / `tower-http` static file server serving Nodlance ClusterControl at `/`
+- [x] Real-time fleet overview dashboard with multi-engine filter (PostgreSQL, MySQL, MariaDB)
+- [x] Interactive SVG replication topology graph with animated replication streams, lag badges, and node inspector
+- [x] High Availability & Recovery Studio with candidate evaluator ranking, cryptographic operator approval token, and STONITH node fencing
+- [x] 5-step guarded cluster deployment wizard with LIFO reverse rollback safety preview
+- [x] Backups management and automated restore qualification drill verification reports (SHA-256 integrity)
+- [x] Workload discovery scanner (Subnet CIDR / Docker / K8s) with one-click import
+- [x] Host inventory and agent management with one-line installation command generator
+- [x] Incident alarm acknowledgment flow and tamper-evident audit log trail
+

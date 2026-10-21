@@ -6,11 +6,11 @@ services:
       POSTGRES_USER: nodlance
       POSTGRES_PASSWORD: localdev
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nodlance -d nodlance"]
+      test: [ "CMD-SHELL", "pg_isready -U nodlance -d nodlance" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -28,6 +28,7 @@ services:
       DATABASE_URL: "postgres://nodlance:localdev@postgres:5432/nodlance"
       JWT_SECRET: "change-me-in-production-min-32-chars-key"
       NODLANCE_ADMIN_PASSWORD: "adminpassword"
+      NODLANCE_STATIC_DIR: "/app/ui/dist"
     ports:
       - "8080:8080"
     restart: unless-stopped
