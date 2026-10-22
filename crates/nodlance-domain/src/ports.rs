@@ -4,16 +4,20 @@ use std::future::Future;
 use uuid::Uuid;
 
 use crate::{
+    advisor::{AdvisorCategory, AdvisorFinding, AdvisorRule, QueryDigest},
     agent::AgentIdentity,
     alert::{AlertIncident, AlertRule, MaintenanceWindow, NewMaintenanceWindow},
     audit::{AuditEvent, AuditFilter, NewAuditEvent},
     backup::{BackupArtifact, NewBackupArtifact, RestoreValidationDrill},
+    backup_schedule::{BackupSchedule, NewBackupSchedule, PitrStream, UpdateBackupSchedule},
     cluster::{Cluster, DatabaseNode, NewCluster, NewDatabaseNode},
+    config_pki::{ConfigTemplate, PkiCertificate},
     engine::{NodeHealth, NodeRole},
     error::DomainError,
     heartbeat::AgentHeartbeat,
     host::{Host, HostFilter, NewHost, UpdateHost},
     job::{Job, JobAttempt, NewJob},
+    load_balancer::{LoadBalancer, LoadBalancerFilter, NewLoadBalancer, UpdateLoadBalancer},
     metrics::HostMetrics,
     observation::{ClusterTopology, NodeObservation},
     provisioning::{
@@ -24,7 +28,6 @@ use crate::{
         ClusterEpoch, FencingExecution, FencingStatus, FencingType, NewPromotionRequest,
         PromotionRequest, UpdatePromotionParams,
     },
-    load_balancer::{LoadBalancer, LoadBalancerFilter, NewLoadBalancer, UpdateLoadBalancer},
     user::{NewUser, Permission, Role, User},
 };
 
@@ -462,8 +465,128 @@ pub trait LoadBalancerRepository: Send + Sync {
         update: &UpdateLoadBalancer,
     ) -> impl Future<Output = Result<LoadBalancer, DomainError>> + Send;
 
-    fn delete(
+    fn delete(&self, id: Uuid) -> impl Future<Output = Result<(), DomainError>> + Send;
+}
+
+/// Port for automated backup schedules and PITR continuous stream catalogues.
+pub trait BackupScheduleRepository: Send + Sync {
+    fn create_schedule(
+        &self,
+        schedule: &NewBackupSchedule,
+    ) -> impl Future<Output = Result<BackupSchedule, DomainError>> + Send;
+
+    fn get_schedule_by_id(
         &self,
         id: Uuid,
+    ) -> impl Future<Output = Result<Option<BackupSchedule>, DomainError>> + Send;
+
+    fn list_schedules_by_cluster(
+        &self,
+        cluster_id: Uuid,
+    ) -> impl Future<Output = Result<Vec<BackupSchedule>, DomainError>> + Send;
+
+    fn update_schedule(
+        &self,
+        id: Uuid,
+        update: &UpdateBackupSchedule,
+    ) -> impl Future<Output = Result<BackupSchedule, DomainError>> + Send;
+
+    fn delete_schedule(&self, id: Uuid) -> impl Future<Output = Result<(), DomainError>> + Send;
+
+    fn get_pitr_stream_by_cluster(
+        &self,
+        cluster_id: Uuid,
+    ) -> impl Future<Output = Result<Option<PitrStream>, DomainError>> + Send;
+
+    fn upsert_pitr_stream(
+        &self,
+        stream: &PitrStream,
+    ) -> impl Future<Output = Result<PitrStream, DomainError>> + Send;
+}
+
+/// Port for DBA advisor heuristics, findings, and slow query telemetry persistence.
+pub trait AdvisorRepository: Send + Sync {
+    fn list_rules(
+        &self,
+        engine: Option<&str>,
+        category: Option<AdvisorCategory>,
+    ) -> impl Future<Output = Result<Vec<AdvisorRule>, DomainError>> + Send;
+
+    fn get_rule_by_id(
+        &self,
+        id: &str,
+    ) -> impl Future<Output = Result<Option<AdvisorRule>, DomainError>> + Send;
+
+    fn create_or_update_rule(
+        &self,
+        rule: &AdvisorRule,
+    ) -> impl Future<Output = Result<AdvisorRule, DomainError>> + Send;
+
+    fn record_findings(
+        &self,
+        findings: &[AdvisorFinding],
+    ) -> impl Future<Output = Result<Vec<AdvisorFinding>, DomainError>> + Send;
+
+    fn list_findings_by_cluster(
+        &self,
+        cluster_id: Uuid,
+        only_unresolved: bool,
+    ) -> impl Future<Output = Result<Vec<AdvisorFinding>, DomainError>> + Send;
+
+    fn resolve_finding(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<AdvisorFinding, DomainError>> + Send;
+
+    fn record_query_digests(
+        &self,
+        digests: &[QueryDigest],
     ) -> impl Future<Output = Result<(), DomainError>> + Send;
+
+    fn list_slow_queries_by_cluster(
+        &self,
+        cluster_id: Uuid,
+        limit: u32,
+    ) -> impl Future<Output = Result<Vec<QueryDigest>, DomainError>> + Send;
+}
+
+/// Port for centralized database configuration template storage and rolling versioning.
+pub trait ConfigurationRepository: Send + Sync {
+    fn create_or_update_template(
+        &self,
+        template: &ConfigTemplate,
+    ) -> impl Future<Output = Result<ConfigTemplate, DomainError>> + Send;
+
+    fn get_template_by_id(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<Option<ConfigTemplate>, DomainError>> + Send;
+
+    fn list_templates(
+        &self,
+        cluster_id: Option<Uuid>,
+        engine: Option<&str>,
+    ) -> impl Future<Output = Result<Vec<ConfigTemplate>, DomainError>> + Send;
+
+    fn delete_template(&self, id: Uuid) -> impl Future<Output = Result<(), DomainError>> + Send;
+}
+
+/// Port for built-in X.509 Certificate Authority and mTLS certificate persistence.
+pub trait PkiRepository: Send + Sync {
+    fn store_certificate(
+        &self,
+        cert: &PkiCertificate,
+    ) -> impl Future<Output = Result<PkiCertificate, DomainError>> + Send;
+
+    fn get_certificate_by_id(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<Option<PkiCertificate>, DomainError>> + Send;
+
+    fn list_certificates_by_cluster(
+        &self,
+        cluster_id: Option<Uuid>,
+    ) -> impl Future<Output = Result<Vec<PkiCertificate>, DomainError>> + Send;
+
+    fn revoke_certificate(&self, id: Uuid) -> impl Future<Output = Result<(), DomainError>> + Send;
 }

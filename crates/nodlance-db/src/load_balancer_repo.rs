@@ -48,8 +48,10 @@ impl TryFrom<LoadBalancerRow> for LoadBalancer {
         let status = LoadBalancerStatus::from_str(&row.status)
             .map_err(|e| DomainError::Internal(format!("corrupt status in db: {e}")))?;
 
-        let config_snapshot: LoadBalancerConfigSnapshot = serde_json::from_value(row.config_snapshot)
-            .map_err(|e| DomainError::Internal(format!("corrupt config_snapshot json in db: {e}")))?;
+        let config_snapshot: LoadBalancerConfigSnapshot =
+            serde_json::from_value(row.config_snapshot).map_err(|e| {
+                DomainError::Internal(format!("corrupt config_snapshot json in db: {e}"))
+            })?;
 
         Ok(Self {
             id: row.id,
@@ -73,8 +75,9 @@ impl LoadBalancerRepository for PgLoadBalancerRepository {
         let id = Uuid::now_v7();
         let lb_type_str = new_lb.lb_type.as_str();
         let status_str = LoadBalancerStatus::Active.as_str();
-        let config_json = serde_json::to_value(&new_lb.config_snapshot)
-            .map_err(|e| DomainError::Internal(format!("failed to serialize config_snapshot: {e}")))?;
+        let config_json = serde_json::to_value(&new_lb.config_snapshot).map_err(|e| {
+            DomainError::Internal(format!("failed to serialize config_snapshot: {e}"))
+        })?;
         let listen_port = new_lb.listen_port as i32;
         let admin_port = new_lb.admin_port.map(|p| p as i32);
 
@@ -153,7 +156,11 @@ impl LoadBalancerRepository for PgLoadBalancerRepository {
         let config_json = update
             .config_snapshot
             .as_ref()
-            .map(|c| serde_json::to_value(c).map_err(|e| DomainError::Internal(format!("failed to serialize config_snapshot: {e}"))))
+            .map(|c| {
+                serde_json::to_value(c).map_err(|e| {
+                    DomainError::Internal(format!("failed to serialize config_snapshot: {e}"))
+                })
+            })
             .transpose()?;
 
         let row = sqlx::query_as::<_, LoadBalancerRow>(
@@ -190,7 +197,9 @@ impl LoadBalancerRepository for PgLoadBalancerRepository {
         .map_err(|e| map_sqlx_error(e, "delete load balancer"))?;
 
         if result.rows_affected() == 0 {
-            return Err(DomainError::NotFound(format!("load balancer '{id}' not found")));
+            return Err(DomainError::NotFound(format!(
+                "load balancer '{id}' not found"
+            )));
         }
 
         Ok(())

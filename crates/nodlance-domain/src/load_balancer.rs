@@ -303,7 +303,12 @@ impl LoadBalancer {
     }
 
     /// Generates a valid pgbouncer.ini configuration file content.
-    pub fn generate_pgbouncer_ini(&self, db_host: &str, db_port: u16, db_name: &str) -> Result<String, DomainError> {
+    pub fn generate_pgbouncer_ini(
+        &self,
+        db_host: &str,
+        db_port: u16,
+        db_name: &str,
+    ) -> Result<String, DomainError> {
         let config = self.config_snapshot.pgbouncer.as_ref().ok_or_else(|| {
             DomainError::Validation("PgBouncerConfig missing in config_snapshot".to_string())
         })?;
@@ -311,7 +316,10 @@ impl LoadBalancer {
         let mut ini = String::new();
         ini.push_str("; Nodlance Managed PgBouncer Configuration\n");
         ini.push_str("[databases]\n");
-        ini.push_str(&format!("{} = host={} port={} dbname={}\n\n", db_name, db_host, db_port, db_name));
+        ini.push_str(&format!(
+            "{} = host={} port={} dbname={}\n\n",
+            db_name, db_host, db_port, db_name
+        ));
         ini.push_str("[pgbouncer]\n");
         ini.push_str(&format!("listen_port = {}\n", self.listen_port));
         ini.push_str("listen_addr = *\n");
@@ -321,13 +329,22 @@ impl LoadBalancer {
         ini.push_str("pidfile = /var/run/pgbouncer/pgbouncer.pid\n");
         ini.push_str(&format!("pool_mode = {}\n", config.pool_mode.as_str()));
         ini.push_str(&format!("max_client_conn = {}\n", config.max_client_conn));
-        ini.push_str(&format!("default_pool_size = {}\n", config.default_pool_size));
+        ini.push_str(&format!(
+            "default_pool_size = {}\n",
+            config.default_pool_size
+        ));
         ini.push_str(&format!("min_pool_size = {}\n", config.min_pool_size));
-        ini.push_str(&format!("reserve_pool_size = {}\n", config.reserve_pool_size));
+        ini.push_str(&format!(
+            "reserve_pool_size = {}\n",
+            config.reserve_pool_size
+        ));
         ini.push_str("reserve_pool_timeout = 5\n");
         ini.push_str("server_idle_timeout = 600\n");
         if let Some(admin) = self.admin_port {
-            ini.push_str(&format!("admin_users = nodlance_admin\n; admin port: {}\n", admin));
+            ini.push_str(&format!(
+                "admin_users = nodlance_admin\n; admin port: {}\n",
+                admin
+            ));
         }
 
         Ok(ini)
@@ -354,10 +371,16 @@ impl LoadBalancer {
             conf.push_str("}\n\n");
         }
 
-        conf.push_str(&format!("vrrp_instance VI_{} {{\n", config.virtual_router_id));
+        conf.push_str(&format!(
+            "vrrp_instance VI_{} {{\n",
+            config.virtual_router_id
+        ));
         conf.push_str(&format!("    state {}\n", config.state));
         conf.push_str(&format!("    interface {}\n", config.interface));
-        conf.push_str(&format!("    virtual_router_id {}\n", config.virtual_router_id));
+        conf.push_str(&format!(
+            "    virtual_router_id {}\n",
+            config.virtual_router_id
+        ));
         conf.push_str(&format!("    priority {}\n", config.priority));
         conf.push_str(&format!("    advert_int {}\n", config.advert_int_seconds));
         conf.push_str("    virtual_ipaddress {\n");
@@ -430,30 +453,67 @@ pub struct LoadBalancerFilter {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_load_balancer_type_and_status_roundtrip() {
-        assert_eq!(LoadBalancerType::from_str("proxysql").unwrap(), LoadBalancerType::ProxySql);
-        assert_eq!(LoadBalancerType::from_str("pgbouncer").unwrap(), LoadBalancerType::PgBouncer);
-        assert_eq!(LoadBalancerType::from_str("haproxy").unwrap(), LoadBalancerType::HaProxy);
-        assert_eq!(LoadBalancerType::from_str("keepalived").unwrap(), LoadBalancerType::Keepalived);
+        assert_eq!(
+            LoadBalancerType::from_str("proxysql").unwrap(),
+            LoadBalancerType::ProxySql
+        );
+        assert_eq!(
+            LoadBalancerType::from_str("pgbouncer").unwrap(),
+            LoadBalancerType::PgBouncer
+        );
+        assert_eq!(
+            LoadBalancerType::from_str("haproxy").unwrap(),
+            LoadBalancerType::HaProxy
+        );
+        assert_eq!(
+            LoadBalancerType::from_str("keepalived").unwrap(),
+            LoadBalancerType::Keepalived
+        );
         assert!(LoadBalancerType::from_str("unknown").is_err());
 
-        assert_eq!(LoadBalancerStatus::from_str("active").unwrap(), LoadBalancerStatus::Active);
-        assert_eq!(LoadBalancerStatus::from_str("standby").unwrap(), LoadBalancerStatus::Standby);
-        assert_eq!(LoadBalancerStatus::from_str("degraded").unwrap(), LoadBalancerStatus::Degraded);
-        assert_eq!(LoadBalancerStatus::from_str("error").unwrap(), LoadBalancerStatus::Error);
-        assert_eq!(LoadBalancerStatus::from_str("maintenance").unwrap(), LoadBalancerStatus::Maintenance);
+        assert_eq!(
+            LoadBalancerStatus::from_str("active").unwrap(),
+            LoadBalancerStatus::Active
+        );
+        assert_eq!(
+            LoadBalancerStatus::from_str("standby").unwrap(),
+            LoadBalancerStatus::Standby
+        );
+        assert_eq!(
+            LoadBalancerStatus::from_str("degraded").unwrap(),
+            LoadBalancerStatus::Degraded
+        );
+        assert_eq!(
+            LoadBalancerStatus::from_str("error").unwrap(),
+            LoadBalancerStatus::Error
+        );
+        assert_eq!(
+            LoadBalancerStatus::from_str("maintenance").unwrap(),
+            LoadBalancerStatus::Maintenance
+        );
         assert!(LoadBalancerStatus::from_str("bad").is_err());
     }
 
     #[test]
     fn test_pgbouncer_pool_mode_roundtrip() {
-        assert_eq!(PgBouncerPoolMode::from_str("session").unwrap(), PgBouncerPoolMode::Session);
-        assert_eq!(PgBouncerPoolMode::from_str("transaction").unwrap(), PgBouncerPoolMode::Transaction);
-        assert_eq!(PgBouncerPoolMode::from_str("statement").unwrap(), PgBouncerPoolMode::Statement);
+        assert_eq!(
+            PgBouncerPoolMode::from_str("session").unwrap(),
+            PgBouncerPoolMode::Session
+        );
+        assert_eq!(
+            PgBouncerPoolMode::from_str("transaction").unwrap(),
+            PgBouncerPoolMode::Transaction
+        );
+        assert_eq!(
+            PgBouncerPoolMode::from_str("statement").unwrap(),
+            PgBouncerPoolMode::Statement
+        );
         assert!(PgBouncerPoolMode::from_str("invalid").is_err());
     }
 
@@ -548,7 +608,9 @@ mod tests {
         };
 
         lb.validate().unwrap();
-        let ini = lb.generate_pgbouncer_ini("10.0.0.5", 5432, "app_production").unwrap();
+        let ini = lb
+            .generate_pgbouncer_ini("10.0.0.5", 5432, "app_production")
+            .unwrap();
         assert!(ini.contains("app_production = host=10.0.0.5 port=5432 dbname=app_production"));
         assert!(ini.contains("pool_mode = transaction"));
         assert!(ini.contains("max_client_conn = 500"));

@@ -8,6 +8,8 @@
   import HaRecoveryView from './components/HaRecoveryView.svelte';
   import LoadBalancersView from './components/LoadBalancersView.svelte';
   import BackupsView from './components/BackupsView.svelte';
+  import AdvisorsView from './components/AdvisorsView.svelte';
+  import ConfigPkiView from './components/ConfigPkiView.svelte';
   import ProvisioningView from './components/ProvisioningView.svelte';
   import DiscoveryView from './components/DiscoveryView.svelte';
   import HostsView from './components/HostsView.svelte';
@@ -47,6 +49,10 @@
       <HaRecoveryView />
     {:else if $activeView === 'backups'}
       <BackupsView />
+    {:else if $activeView === 'advisors'}
+      <AdvisorsView />
+    {:else if $activeView === 'config-pki'}
+      <ConfigPkiView />
     {:else if $activeView === 'provisioning'}
       <ProvisioningView />
     {:else if $activeView === 'discovery'}

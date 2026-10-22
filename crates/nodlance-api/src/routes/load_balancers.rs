@@ -87,7 +87,9 @@ pub async fn create_load_balancer(
         .cluster_repo
         .get_cluster_by_id(payload.cluster_id)
         .await?
-        .ok_or_else(|| DomainError::NotFound(format!("cluster '{}' not found", payload.cluster_id)))?;
+        .ok_or_else(|| {
+            DomainError::NotFound(format!("cluster '{}' not found", payload.cluster_id))
+        })?;
 
     // Validate host existence
     state
@@ -166,8 +168,13 @@ pub async fn reload_load_balancer(
         LoadBalancerType::ProxySql => lb.generate_proxysql_admin_sql()?,
         LoadBalancerType::PgBouncer => {
             // Find nodes in cluster to point to primary
-            let nodes = state.cluster_repo.list_nodes_by_cluster(lb.cluster_id).await?;
-            let primary = nodes.iter().find(|n| n.role == nodlance_domain::NodeRole::Primary);
+            let nodes = state
+                .cluster_repo
+                .list_nodes_by_cluster(lb.cluster_id)
+                .await?;
+            let primary = nodes
+                .iter()
+                .find(|n| n.role == nodlance_domain::NodeRole::Primary);
             let (db_host, db_port) = match primary {
                 Some(p) => (p.host_id.to_string(), p.port),
                 None => ("127.0.0.1".to_string(), 5432),
@@ -179,11 +186,20 @@ pub async fn reload_load_balancer(
             let mut conf = String::new();
             conf.push_str("# Nodlance HAProxy Managed Config\n");
             conf.push_str("global\n    log /dev/log local0\n    maxconn 4096\n\n");
-            conf.push_str(&format!("frontend db_front\n    bind *:{} \n    mode tcp\n    default_backend db_back\n\n", lb.listen_port));
+            conf.push_str(&format!(
+                "frontend db_front\n    bind *:{} \n    mode tcp\n    default_backend db_back\n\n",
+                lb.listen_port
+            ));
             conf.push_str("backend db_back\n    mode tcp\n    balance roundrobin\n");
-            let nodes = state.cluster_repo.list_nodes_by_cluster(lb.cluster_id).await?;
+            let nodes = state
+                .cluster_repo
+                .list_nodes_by_cluster(lb.cluster_id)
+                .await?;
             for node in &nodes {
-                conf.push_str(&format!("    server node_{} {}:{} check\n", node.id, node.host_id, node.port));
+                conf.push_str(&format!(
+                    "    server node_{} {}:{} check\n",
+                    node.id, node.host_id, node.port
+                ));
             }
             conf
         }
@@ -219,7 +235,10 @@ pub async fn reload_load_balancer(
     Ok(Json(ReloadResult {
         load_balancer_id: lb.id,
         status: updated.status,
-        message: format!("Load balancer {} config successfully regenerated and synchronized", lb.lb_type),
+        message: format!(
+            "Load balancer {} config successfully regenerated and synchronized",
+            lb.lb_type
+        ),
         generated_config,
     }))
 }

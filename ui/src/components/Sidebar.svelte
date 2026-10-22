@@ -27,6 +27,16 @@
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
       <span>Backups & Drills</span>
     </button>
+    <button class="nav-item {$activeView === 'advisors' ? 'active' : ''}" onclick={() => switchView('advisors')}>
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/></svg>
+      <span>DBA Advisors</span>
+      <span class="nav-badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;">Rhai</span>
+    </button>
+    <button class="nav-item {$activeView === 'config-pki' ? 'active' : ''}" onclick={() => switchView('config-pki')}>
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      <span>Config & PKI CA</span>
+      <span class="nav-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">mTLS</span>
+    </button>
 
     <div class="nav-section-title">PROVISIONING & INFRA</div>
     <button class="nav-item {$activeView === 'provisioning' ? 'active' : ''}" onclick={() => switchView('provisioning')}>

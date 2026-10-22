@@ -1,10 +1,13 @@
 //! PostgreSQL metadata storage layer for Nodlance.
 
+pub mod advisor_repo;
 pub mod agent_repo;
 pub mod alert_repo;
 pub mod audit_repo;
 pub mod backup_repo;
+pub mod backup_schedule_repo;
 pub mod cluster_repo;
+pub mod config_repo;
 pub mod error;
 pub mod heartbeat_repo;
 pub mod host_repo;
@@ -15,11 +18,14 @@ pub mod provisioning_repo;
 pub mod recovery_repo;
 pub mod user_repo;
 
+pub use advisor_repo::PgAdvisorRepository;
 pub use agent_repo::PgAgentRepository;
 pub use alert_repo::PgAlertRepository;
 pub use audit_repo::PgAuditRepository;
 pub use backup_repo::PgBackupRepository;
+pub use backup_schedule_repo::PgBackupScheduleRepository;
 pub use cluster_repo::PgClusterRepository;
+pub use config_repo::{PgConfigurationRepository, PgPkiRepository};
 pub use heartbeat_repo::PgHeartbeatRepository;
 pub use host_repo::PgHostRepository;
 pub use job_repo::PgJobRepository;

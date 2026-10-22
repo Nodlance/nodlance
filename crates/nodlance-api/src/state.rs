@@ -1,9 +1,9 @@
-//! Application state and dependency wiring.
-
+use nodlance_advisor::AdvisorEvaluator;
 use nodlance_db::{
-    PgAgentRepository, PgAlertRepository, PgAuditRepository, PgBackupRepository,
-    PgClusterRepository, PgDiscoveryRepository, PgHeartbeatRepository, PgHostRepository,
-    PgJobRepository, PgLoadBalancerRepository, PgObservationRepository, PgProvisioningRepository,
+    PgAdvisorRepository, PgAgentRepository, PgAlertRepository, PgAuditRepository,
+    PgBackupRepository, PgBackupScheduleRepository, PgClusterRepository, PgConfigurationRepository,
+    PgDiscoveryRepository, PgHeartbeatRepository, PgHostRepository, PgJobRepository,
+    PgLoadBalancerRepository, PgObservationRepository, PgPkiRepository, PgProvisioningRepository,
     PgRecoveryRepository, PgUserRepository,
 };
 use sqlx::PgPool;
@@ -22,10 +22,15 @@ pub struct AppState {
     pub alert_repo: PgAlertRepository,
     pub job_repo: PgJobRepository,
     pub backup_repo: PgBackupRepository,
+    pub backup_schedule_repo: PgBackupScheduleRepository,
     pub provisioning_repo: PgProvisioningRepository,
     pub discovery_repo: PgDiscoveryRepository,
     pub recovery_repo: PgRecoveryRepository,
     pub load_balancer_repo: PgLoadBalancerRepository,
+    pub advisor_repo: PgAdvisorRepository,
+    pub advisor_evaluator: AdvisorEvaluator,
+    pub config_repo: PgConfigurationRepository,
+    pub pki_repo: PgPkiRepository,
 }
 
 impl AppState {
@@ -41,10 +46,15 @@ impl AppState {
             alert_repo: PgAlertRepository::new(pool.clone()),
             job_repo: PgJobRepository::new(pool.clone()),
             backup_repo: PgBackupRepository::new(pool.clone()),
+            backup_schedule_repo: PgBackupScheduleRepository::new(pool.clone()),
             provisioning_repo: PgProvisioningRepository::new(pool.clone()),
             discovery_repo: PgDiscoveryRepository::new(pool.clone()),
             recovery_repo: PgRecoveryRepository::new(pool.clone()),
             load_balancer_repo: PgLoadBalancerRepository::new(pool.clone()),
+            advisor_repo: PgAdvisorRepository::new(pool.clone()),
+            advisor_evaluator: AdvisorEvaluator::new(),
+            config_repo: PgConfigurationRepository::new(pool.clone()),
+            pki_repo: PgPkiRepository::new(pool.clone()),
             db: Some(pool),
             jwt_secret,
         }
@@ -67,10 +77,15 @@ impl AppState {
             alert_repo: PgAlertRepository::new(pool.clone()),
             job_repo: PgJobRepository::new(pool.clone()),
             backup_repo: PgBackupRepository::new(pool.clone()),
+            backup_schedule_repo: PgBackupScheduleRepository::new(pool.clone()),
             provisioning_repo: PgProvisioningRepository::new(pool.clone()),
             discovery_repo: PgDiscoveryRepository::new(pool.clone()),
             recovery_repo: PgRecoveryRepository::new(pool.clone()),
             load_balancer_repo: PgLoadBalancerRepository::new(pool.clone()),
+            advisor_repo: PgAdvisorRepository::new(pool.clone()),
+            advisor_evaluator: AdvisorEvaluator::new(),
+            config_repo: PgConfigurationRepository::new(pool.clone()),
+            pki_repo: PgPkiRepository::new(pool.clone()),
             db: None,
             jwt_secret: "test-secret-key-that-is-at-least-32-bytes-long".to_string(),
         }

@@ -6,8 +6,8 @@ use axum::{
     http::StatusCode,
 };
 use nodlance_domain::{
-    ClusterRepository, DomainError, GaleraArbitratorConfig, GaleraObservation,
-    NodeHealth, ObservationRepository, Permission, WsrepClusterStatus, WsrepLocalState,
+    ClusterRepository, DomainError, GaleraArbitratorConfig, GaleraObservation, NodeHealth,
+    ObservationRepository, Permission, WsrepClusterStatus, WsrepLocalState,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -69,8 +69,14 @@ pub async fn get_galera_status(
 
     for node in &nodes {
         // Query latest observation
-        let obs_opt = state.observation_repo.get_latest_observation(node.id).await?;
-        let is_healthy = obs_opt.as_ref().map(|o| o.health == NodeHealth::Healthy).unwrap_or(false);
+        let obs_opt = state
+            .observation_repo
+            .get_latest_observation(node.id)
+            .await?;
+        let is_healthy = obs_opt
+            .as_ref()
+            .map(|o| o.health == NodeHealth::Healthy)
+            .unwrap_or(false);
 
         let local_state = if is_healthy {
             WsrepLocalState::Synced

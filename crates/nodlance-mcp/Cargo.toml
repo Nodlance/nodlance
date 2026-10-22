@@ -1,0 +1,23 @@
+[package]
+name = "nodlance-mcp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+chrono.workspace = true
+nodlance-advisor.workspace = true
+nodlance-domain.workspace = true
+nodlance-recovery.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

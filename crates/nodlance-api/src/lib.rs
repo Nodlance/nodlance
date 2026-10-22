@@ -208,6 +208,77 @@ pub fn build_app(state: AppState) -> Router {
             "/api/v1/clusters/{id}/galera/arbitrator",
             post(routes::galera::generate_arbitrator_config),
         )
+        // Backup Schedules & Continuous PITR Streams
+        .route(
+            "/api/v1/clusters/{id}/backup-schedules",
+            get(routes::backup_schedules::list_cluster_backup_schedules)
+                .post(routes::backup_schedules::create_cluster_backup_schedule),
+        )
+        .route(
+            "/api/v1/backup-schedules/{id}",
+            get(routes::backup_schedules::get_backup_schedule)
+                .put(routes::backup_schedules::update_backup_schedule)
+                .delete(routes::backup_schedules::delete_backup_schedule),
+        )
+        .route(
+            "/api/v1/clusters/{id}/pitr/stream",
+            get(routes::backup_schedules::get_cluster_pitr_stream)
+                .put(routes::backup_schedules::upsert_cluster_pitr_stream),
+        )
+        // DBA Advisors & Operational Heuristics
+        .route(
+            "/api/v1/advisors/rules",
+            get(routes::advisors::list_advisor_rules)
+                .post(routes::advisors::create_or_update_advisor_rule),
+        )
+        .route(
+            "/api/v1/clusters/{id}/advisors/findings",
+            get(routes::advisors::list_cluster_advisor_findings),
+        )
+        .route(
+            "/api/v1/clusters/{id}/advisors/scan",
+            post(routes::advisors::trigger_cluster_advisor_scan),
+        )
+        .route(
+            "/api/v1/advisors/findings/{id}/resolve",
+            post(routes::advisors::resolve_advisor_finding),
+        )
+        // Query Performance & Slow Query Digest
+        .route(
+            "/api/v1/clusters/{id}/queries/slow",
+            get(routes::advisors::list_cluster_slow_queries),
+        )
+        .route(
+            "/api/v1/clusters/{id}/queries/digest",
+            post(routes::advisors::ingest_cluster_query_digests),
+        )
+        // Centralized Configuration Management
+        .route(
+            "/api/v1/configs/templates",
+            get(routes::config_pki::list_templates)
+                .post(routes::config_pki::create_or_update_template),
+        )
+        .route(
+            "/api/v1/configs/templates/{id}",
+            get(routes::config_pki::get_template).delete(routes::config_pki::delete_template),
+        )
+        .route(
+            "/api/v1/clusters/{id}/configs/diff",
+            post(routes::config_pki::calculate_diff),
+        )
+        // Built-in mTLS PKI Certificate Authority
+        .route(
+            "/api/v1/clusters/{id}/pki/certificates",
+            get(routes::config_pki::list_certificates),
+        )
+        .route(
+            "/api/v1/clusters/{id}/pki/generate",
+            post(routes::config_pki::generate_certificate),
+        )
+        .route(
+            "/api/v1/pki/certificates/{id}/revoke",
+            post(routes::config_pki::revoke_certificate),
+        )
         .fallback_service(serve_dir)
         .with_state(state)
 }
@@ -448,6 +519,91 @@ mod tests {
             .await
             .unwrap_or_else(|error| panic!("router failed: {error}"));
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn backup_schedule_endpoints_require_authorization() {
+        let app = build_app(AppState::new_test());
+
+        let request = Request::builder()
+            .uri(format!(
+                "/api/v1/clusters/{}/backup-schedules",
+                Uuid::now_v7()
+            ))
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .clone()
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let pitr_request = Request::builder()
+            .uri(format!("/api/v1/clusters/{}/pitr/stream", Uuid::now_v7()))
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let pitr_response = app
+            .oneshot(pitr_request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(pitr_response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn advisors_endpoints_require_authorization() {
+        let app = build_app(AppState::new_test());
+
+        let request = Request::builder()
+            .uri("/api/v1/advisors/rules")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .clone()
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let scan_request = Request::builder()
+            .uri(format!("/api/v1/clusters/{}/advisors/scan", Uuid::now_v7()))
+            .method("POST")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let scan_response = app
+            .oneshot(scan_request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(scan_response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn config_and_pki_endpoints_require_authorization() {
+        let app = build_app(AppState::new_test());
+
+        let template_req = Request::builder()
+            .uri("/api/v1/configs/templates")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .clone()
+            .oneshot(template_req)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let pki_req = Request::builder()
+            .uri(format!(
+                "/api/v1/clusters/{}/pki/certificates",
+                Uuid::now_v7()
+            ))
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let pki_resp = app
+            .oneshot(pki_req)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(pki_resp.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]

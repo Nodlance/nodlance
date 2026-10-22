@@ -154,7 +154,7 @@ impl FromStr for SstMethod {
 pub struct GaleraArbitratorConfig {
     pub cluster_name: String,
     pub cluster_address: String, // gcomm://node1:4567,node2:4567
-    pub listen_port: u16,         // default 4567
+    pub listen_port: u16,        // default 4567
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sst_donor: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -184,7 +184,9 @@ impl GaleraArbitratorConfig {
     /// Generates systemd service unit file for garbd daemon.
     pub fn generate_systemd_unit(&self) -> String {
         let mut unit = String::new();
-        unit.push_str("[Unit]\nDescription=Galera Arbitrator Daemon (garbd)\nAfter=network.target\n\n");
+        unit.push_str(
+            "[Unit]\nDescription=Galera Arbitrator Daemon (garbd)\nAfter=network.target\n\n",
+        );
         unit.push_str("[Service]\nType=simple\nUser=nobody\nGroup=nogroup\nEnvironmentFile=-/etc/default/garbd\n");
         unit.push_str("ExecStart=/usr/bin/garbd -a ${GALERA_NODES} -g ${GALERA_GROUP} -o ${GALERA_OPTIONS} -l ${LOG_FILE}\n");
         unit.push_str("Restart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n");
@@ -212,7 +214,10 @@ pub struct GaleraObservation {
 impl GaleraObservation {
     /// Detects whether this node is in an operational ready state capable of serving queries.
     pub fn is_operational(&self) -> bool {
-        self.connected && self.ready && self.local_state == WsrepLocalState::Synced && self.cluster_status == WsrepClusterStatus::Primary
+        self.connected
+            && self.ready
+            && self.local_state == WsrepLocalState::Synced
+            && self.cluster_status == WsrepClusterStatus::Primary
     }
 
     /// Evaluates if cluster partition is degraded or at risk of split-brain.
@@ -235,20 +240,33 @@ impl GaleraObservation {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_wsrep_states_and_status() {
-        assert_eq!(WsrepLocalState::from_state_code(1), WsrepLocalState::Joining);
+        assert_eq!(
+            WsrepLocalState::from_state_code(1),
+            WsrepLocalState::Joining
+        );
         assert_eq!(WsrepLocalState::from_state_code(2), WsrepLocalState::Donor);
         assert_eq!(WsrepLocalState::from_state_code(3), WsrepLocalState::Joined);
         assert_eq!(WsrepLocalState::from_state_code(4), WsrepLocalState::Synced);
         assert_eq!(WsrepLocalState::from_state_code(99), WsrepLocalState::Error);
 
-        assert_eq!(WsrepLocalState::from_str("synced").unwrap(), WsrepLocalState::Synced);
-        assert_eq!(WsrepClusterStatus::from_str("primary").unwrap(), WsrepClusterStatus::Primary);
-        assert_eq!(WsrepClusterStatus::from_str("non-primary").unwrap(), WsrepClusterStatus::NonPrimary);
+        assert_eq!(
+            WsrepLocalState::from_str("synced").unwrap(),
+            WsrepLocalState::Synced
+        );
+        assert_eq!(
+            WsrepClusterStatus::from_str("primary").unwrap(),
+            WsrepClusterStatus::Primary
+        );
+        assert_eq!(
+            WsrepClusterStatus::from_str("non-primary").unwrap(),
+            WsrepClusterStatus::NonPrimary
+        );
     }
 
     #[test]

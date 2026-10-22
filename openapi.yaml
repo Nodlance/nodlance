@@ -1420,6 +1420,352 @@ paths:
         '200':
           description: Garbd environment configuration and systemd service unit
 
+  /api/v1/clusters/{id}/backup-schedules:
+    get:
+      summary: List automated backup schedules for cluster
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of backup schedules
+    post:
+      summary: Create automated backup schedule for cluster
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Backup schedule created
+
+  /api/v1/backup-schedules/{id}:
+    get:
+      summary: Get backup schedule by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Backup schedule details
+    put:
+      summary: Update backup schedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Backup schedule updated
+    delete:
+      summary: Delete backup schedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Backup schedule deleted
+
+  /api/v1/clusters/{id}/pitr/stream:
+    get:
+      summary: Get continuous Point-in-Time Recovery (PITR) stream and RPO lag
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Continuous PITR stream state, recovery window, and RPO lag
+    put:
+      summary: Upsert continuous PITR stream catalogue metadata
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated PITR stream metadata
+
+  /api/v1/advisors/rules:
+    get:
+      summary: List scriptable DBA heuristic rules
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of advisor heuristic rules
+    post:
+      summary: Create or update DBA heuristic rule
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Rule created or updated
+
+  /api/v1/clusters/{id}/advisors/findings:
+    get:
+      summary: List active DBA advisor findings for cluster
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of advisor findings and recommendations
+
+  /api/v1/clusters/{id}/advisors/scan:
+    post:
+      summary: Trigger on-demand DBA advisor scan
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Advisor evaluation completed and findings recorded
+
+  /api/v1/advisors/findings/{id}/resolve:
+    post:
+      summary: Mark advisor finding as resolved
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Finding marked resolved
+
+  /api/v1/clusters/{id}/queries/slow:
+    get:
+      summary: List normalized slow query digest telemetry
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of top slowest queries by latency
+
+  /api/v1/clusters/{id}/queries/digest:
+    post:
+      summary: Ingest normalized query digest batch
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Digests ingested
+
+  /api/v1/configs/templates:
+    get:
+      summary: List configuration templates
+      operationId: listConfigTemplates
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cluster_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: engine
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of configuration templates
+    post:
+      summary: Create or update configuration template
+      operationId: createOrUpdateConfigTemplate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConfigTemplateRequest'
+      responses:
+        '201':
+          description: Template created or updated
+
+  /api/v1/configs/templates/{id}:
+    get:
+      summary: Get configuration template details
+      operationId: getConfigTemplate
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Template details
+    delete:
+      summary: Delete configuration template
+      operationId: deleteConfigTemplate
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Template deleted
+
+  /api/v1/clusters/{id}/configs/diff:
+    post:
+      summary: Calculate configuration diff and restart requirements
+      operationId: calculateConfigDiff
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigDiffRequest'
+      responses:
+        '200':
+          description: Diff list with parameter-level restart flags
+
+  /api/v1/clusters/{id}/pki/certificates:
+    get:
+      summary: List X.509 mTLS certificates for cluster
+      operationId: listPkiCertificates
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of PKI certificates
+
+  /api/v1/clusters/{id}/pki/generate:
+    post:
+      summary: Generate and issue new X.509 certificate and private key
+      operationId: generatePkiCertificate
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateCertRequest'
+      responses:
+        '201':
+          description: Certificate and private key bundle
+
+  /api/v1/pki/certificates/{id}/revoke:
+    post:
+      summary: Revoke an issued X.509 certificate
+      operationId: revokePkiCertificate
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Certificate revoked
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2445,6 +2791,53 @@ components:
           enum: [active, standby, degraded, error, maintenance]
         config_snapshot:
           type: object
+
+    CreateConfigTemplateRequest:
+      type: object
+      required: [name, engine, file_path, content]
+      properties:
+        cluster_id:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        engine:
+          type: string
+          enum: [postgres, mysql, galera]
+        file_path:
+          type: string
+        content:
+          type: string
+
+    ConfigDiffRequest:
+      type: object
+      properties:
+        engine:
+          type: string
+        template_id:
+          type: string
+          format: uuid
+          nullable: true
+        current_content:
+          type: string
+          nullable: true
+        target_content:
+          type: string
+          nullable: true
+
+    GenerateCertRequest:
+      type: object
+      required: [common_name]
+      properties:
+        common_name:
+          type: string
+        cert_type:
+          type: string
+          enum: [root_ca, server, client]
+        validity_days:
+          type: integer
+          default: 365
 
 
 

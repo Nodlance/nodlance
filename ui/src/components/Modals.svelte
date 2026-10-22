@@ -8,6 +8,7 @@
     promoteCandidate,
     fenceNode,
     triggerClusterBackup,
+    createBackupSchedule,
     runDiscoveryScan,
     deployNewCluster,
     createLoadBalancer,
@@ -23,6 +24,34 @@
   let wizNodeCount = $state(3);
   let wizPort = $state(5432);
   let isDeploying = $state(false);
+
+  // --- Backup Schedule Modal State ---
+  let schedName = $state('Production Daily Full Snapshot');
+  let schedClusterId = $state('c1a7001-pg16-prod');
+  let schedCron = $state('0 2 * * *');
+  let schedMethod = $state('pg_basebackup');
+  let schedTarget = $state('s3');
+  let schedPath = $state('s3://nodlance-backups/pg16-prod/');
+  let schedRetention = $state(30);
+  let schedCompression = $state('zstd');
+  let schedEncrypt = $state(true);
+
+  function submitBackupSchedule() {
+    const selectedCluster = $clusters.find(c => c.id === schedClusterId);
+    createBackupSchedule({
+      name: schedName,
+      clusterId: schedClusterId,
+      clusterName: selectedCluster ? selectedCluster.name : 'Database Cluster',
+      cronExpression: schedCron,
+      scheduleHuman: schedCron === '0 2 * * *' ? 'Daily at 02:00 AM UTC' : (schedCron === '0 * * * *' ? 'Hourly' : 'Custom Cron Schedule'),
+      backupMethod: schedMethod,
+      storageTarget: schedTarget,
+      storagePath: schedPath,
+      retentionDays: schedRetention,
+      compression: schedCompression,
+      encrypt: schedEncrypt,
+    });
+  }
 
   // --- Load Balancer Modal State ---
   let lbName = $state('ProxySQL Production Router');
@@ -649,3 +678,101 @@
     </div>
   </div>
 {/if}
+
+<!-- 8. Create Backup Schedule Modal -->
+{#if $activeModal === 'createSchedule'}
+  <div
+    class="modal-backdrop open"
+    onclick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+    onkeydown={(e) => { if (e.key === 'Escape') closeModal(); }}
+    role="dialog"
+    tabindex="-1"
+  >
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Configure Automated Backup Schedule</h2>
+        <button class="modal-close-btn" onclick={closeModal}>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="step-desc">Automate physical snapshots, cold cloud storage offloading (AWS S3, MinIO, GCS, Azure Blob), and continuous retention enforcement.</p>
+
+        <div class="form-group">
+          <label class="form-label" for="sched-cluster-select">Target Database Cluster</label>
+          <select id="sched-cluster-select" class="form-input" bind:value={schedClusterId}>
+            {#each $clusters as c}
+              <option value={c.id}>{c.name} ({c.engineName})</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="sched-name-input">Schedule Name</label>
+          <input id="sched-name-input" class="form-input" type="text" bind:value={schedName} />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label" for="sched-cron-input">Cron Schedule</label>
+            <input id="sched-cron-input" class="form-input font-mono" type="text" bind:value={schedCron} />
+            <span style="font-size: 11px; color: var(--text-muted);">Format: min hour day-of-month month day-of-week (e.g. 0 2 * * * = Daily 02:00 UTC)</span>
+          </div>
+          <div class="form-group" style="width: 180px;">
+            <label class="form-label" for="sched-method-select">Engine Method</label>
+            <select id="sched-method-select" class="form-input" bind:value={schedMethod}>
+              <option value="pg_basebackup">pg_basebackup</option>
+              <option value="xtrabackup">Percona XtraBackup</option>
+              <option value="mariabackup">MariaBackup</option>
+              <option value="logical_dump">pg_dump / mysqldump</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="width: 180px;">
+            <label class="form-label" for="sched-target-select">Storage Target</label>
+            <select id="sched-target-select" class="form-input" bind:value={schedTarget}>
+              <option value="s3">AWS S3</option>
+              <option value="minio">MinIO (S3-compatible)</option>
+              <option value="gcs">Google Cloud Storage (GCS)</option>
+              <option value="azure_blob">Azure Blob Storage</option>
+              <option value="local">Local Host Filesystem</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label" for="sched-path-input">Bucket URI / Destination Path</label>
+            <input id="sched-path-input" class="form-input font-mono" type="text" bind:value={schedPath} />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="width: 140px;">
+            <label class="form-label" for="sched-retention-input">Retention (Days)</label>
+            <input id="sched-retention-input" class="form-input" type="number" min="1" max="3650" bind:value={schedRetention} />
+          </div>
+          <div class="form-group" style="width: 140px;">
+            <label class="form-label" for="sched-compression-select">Compression</label>
+            <select id="sched-compression-select" class="form-input" bind:value={schedCompression}>
+              <option value="zstd">Zstandard (zstd)</option>
+              <option value="lz4">LZ4 (Fast)</option>
+              <option value="gzip">Gzip</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+          <div class="form-group flex-1" style="display: flex; align-items: center; padding-top: 24px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+              <input type="checkbox" bind:checked={schedEncrypt} />
+              <span>Enable AES-256 Envelope Encryption</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick={closeModal}>Cancel</button>
+        <button class="btn btn-primary" onclick={submitBackupSchedule}>
+          Save & Activate Schedule
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+

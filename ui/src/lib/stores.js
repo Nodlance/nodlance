@@ -9,7 +9,14 @@ import {
   INITIAL_AUDIT,
   INITIAL_FENCING,
   INITIAL_PLANS,
-  INITIAL_LOAD_BALANCERS
+  INITIAL_LOAD_BALANCERS,
+  INITIAL_BACKUP_SCHEDULES,
+  INITIAL_PITR_STREAMS,
+  INITIAL_ADVISOR_RULES,
+  INITIAL_ADVISOR_FINDINGS,
+  INITIAL_SLOW_QUERIES,
+  INITIAL_CONFIG_TEMPLATES,
+  INITIAL_PKI_CERTIFICATES
 } from './data.js';
 
 // --- Theme Store (Light default, Dark optional) ---
@@ -59,6 +66,11 @@ export const audit = writable(JSON.parse(JSON.stringify(INITIAL_AUDIT)));
 export const fencing = writable(JSON.parse(JSON.stringify(INITIAL_FENCING)));
 export const plans = writable(JSON.parse(JSON.stringify(INITIAL_PLANS)));
 export const loadBalancers = writable(JSON.parse(JSON.stringify(INITIAL_LOAD_BALANCERS)));
+export const backupSchedules = writable(JSON.parse(JSON.stringify(INITIAL_BACKUP_SCHEDULES)));
+export const pitrStreams = writable(JSON.parse(JSON.stringify(INITIAL_PITR_STREAMS)));
+export const advisorRules = writable(JSON.parse(JSON.stringify(INITIAL_ADVISOR_RULES)));
+export const advisorFindings = writable(JSON.parse(JSON.stringify(INITIAL_ADVISOR_FINDINGS)));
+export const slowQueries = writable(JSON.parse(JSON.stringify(INITIAL_SLOW_QUERIES)));
 
 // --- Toasts ---
 export const toasts = writable([]);
@@ -372,6 +384,76 @@ export function createLoadBalancer(lbData) {
   activeModal.set(null);
 }
 
+// Backup Schedule & PITR Actions
+export function createBackupSchedule(data) {
+  const newSchedule = {
+    id: `sched_${Date.now().toString(16).slice(-6)}`,
+    clusterId: data.clusterId || 'c1a7001-pg16-prod',
+    clusterName: data.clusterName || 'prod-pg16-ha-primary',
+    name: data.name || 'Automated Cluster Backup',
+    cronExpression: data.cronExpression || '0 2 * * *',
+    scheduleHuman: data.scheduleHuman || 'Daily at 02:00 AM UTC',
+    backupMethod: data.backupMethod || 'pg_basebackup',
+    storageTarget: data.storageTarget || 's3',
+    storagePath: data.storagePath || 's3://nodlance-backups/cluster/',
+    retentionDays: parseInt(data.retentionDays, 10) || 30,
+    compression: data.compression || 'zstd',
+    encrypt: data.encrypt !== false,
+    isActive: true,
+    lastRunStatus: 'PENDING',
+    lastRunAt: 'Never',
+    nextRunAt: 'Scheduled'
+  };
+
+  backupSchedules.update(s => [newSchedule, ...s]);
+  showToast(`Backup schedule "${newSchedule.name}" configured and activated!`, 'success');
+  activeModal.set(null);
+}
+
+export function deleteBackupSchedule(id) {
+  backupSchedules.update(s => s.filter(item => item.id !== id));
+  showToast('Backup schedule deleted.', 'info');
+}
+
+export function toggleBackupSchedule(id) {
+  backupSchedules.update(s => s.map(item => {
+    if (item.id === id) {
+      const updated = !item.isActive;
+      showToast(`Schedule "${item.name}" ${updated ? 'resumed' : 'paused'}.`, 'info');
+      return { ...item, isActive: updated };
+    }
+    return item;
+  }));
+}
+
+export function rewindPitrStream(clusterId, timestampStr) {
+  showToast(`Initiating PITR recovery validation rewind for ${clusterId} to target: ${timestampStr}`, 'info');
+}
+
+// Advisor Actions
+export function runAdvisorScan(clusterId) {
+  showToast(`Running embedded Rhai DBA Heuristic Scan on cluster ${clusterId}...`, 'info');
+  setTimeout(() => {
+    showToast(`DBA Scan complete. 3 findings evaluated against production policies.`, 'success');
+  }, 1200);
+}
+
+export function resolveAdvisorFinding(id) {
+  advisorFindings.update(f => f.filter(item => item.id !== id));
+  showToast(`Advisor finding marked as resolved.`, 'success');
+}
+
+export function toggleAdvisorRule(id) {
+  advisorRules.update(r => r.map(item => {
+    if (item.id === id) {
+      const updated = !item.isEnabled;
+      showToast(`Advisor rule "${item.name}" ${updated ? 'enabled' : 'disabled'}.`, 'info');
+      return { ...item, isEnabled: updated };
+    }
+    return item;
+  }));
+}
+
 // Live API Poll
 export async function fetchLiveClusters() {
   try {
@@ -387,3 +469,37 @@ export async function fetchLiveClusters() {
     // Falls back gracefully to pre-seeded telemetry
   }
 }
+
+// Config & PKI Stores
+export const configTemplates = writable(JSON.parse(JSON.stringify(INITIAL_CONFIG_TEMPLATES)));
+export const pkiCertificates = writable(JSON.parse(JSON.stringify(INITIAL_PKI_CERTIFICATES)));
+
+export function revokeCertificate(id) {
+  pkiCertificates.update(certs => certs.map(c => c.id === id ? { ...c, isRevoked: true, status: 'REVOKED' } : c));
+  showToast('X.509 Certificate successfully revoked and flagged in CRL.', 'warning');
+}
+
+export function issueCertificate(certData) {
+  const newCert = {
+    id: `cert_${Date.now()}`,
+    clusterId: certData.clusterId || null,
+    clusterName: certData.clusterName || 'Global Cluster',
+    commonName: certData.commonName,
+    certType: certData.certType || 'server',
+    fingerprintSha256: Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join(''),
+    validFrom: new Date().toISOString().split('T')[0],
+    expiresAt: new Date(Date.now() + (certData.validityDays || 365)*86400000).toISOString().split('T')[0],
+    daysLeft: certData.validityDays || 365,
+    isRevoked: false,
+    status: 'ACTIVE'
+  };
+  pkiCertificates.update(certs => [newCert, ...certs]);
+  showToast(`Certificate issued for ${newCert.commonName}`, 'success');
+}
+
+export function updateConfigTemplate(templateId, newContent) {
+  configTemplates.update(tmpls => tmpls.map(t => t.id === templateId ? { ...t, content: newContent, version: t.version + 1, updatedAt: 'Just now' } : t));
+  showToast('Configuration template updated successfully.', 'success');
+}
+
+

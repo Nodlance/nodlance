@@ -7,12 +7,16 @@ members = [
     "crates/nodlance-api",
     "crates/nodlance-adapter-postgres",
     "crates/nodlance-adapter-mysql",
+    "crates/nodlance-adapter-galera",
     "crates/nodlance-agent",
     "crates/nodlance-worker",
     "crates/nodlance-provider-linux",
     "crates/nodlance-provider-docker",
     "crates/nodlance-provider-k8s",
     "crates/nodlance-recovery",
+    "crates/nodlance-advisor",
+    "crates/nodlance-mcp",
+    "crates/nodlance-cli",
 ]
 
 [workspace.package]
@@ -40,6 +44,9 @@ tower-http = { version = "0.6", features = ["fs", "cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v7", "serde"] }
+rhai = { version = "1.19", default-features = false, features = ["sync"] }
+rcgen = { version = "0.13", features = ["pem", "ring"] }
+nodlance-adapter-galera = { path = "crates/nodlance-adapter-galera" }
 nodlance-adapter-mysql = { path = "crates/nodlance-adapter-mysql" }
 nodlance-adapter-postgres = { path = "crates/nodlance-adapter-postgres" }
 nodlance-agent = { path = "crates/nodlance-agent" }
@@ -51,6 +58,8 @@ nodlance-provider-linux = { path = "crates/nodlance-provider-linux" }
 nodlance-provider-docker = { path = "crates/nodlance-provider-docker" }
 nodlance-provider-k8s = { path = "crates/nodlance-provider-k8s" }
 nodlance-recovery = { path = "crates/nodlance-recovery" }
+nodlance-advisor = { path = "crates/nodlance-advisor" }
+nodlance-mcp = { path = "crates/nodlance-mcp" }
 
 
 [workspace.lints.rust]
