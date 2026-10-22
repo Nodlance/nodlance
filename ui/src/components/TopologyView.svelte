@@ -20,11 +20,11 @@
   const primaryY = 70;
 
   let isDark = $derived($theme === 'dark');
-  let replicaBoxFill = $derived(isDark ? '#121d33' : '#ffffff');
+  let replicaBoxFill = $derived(isDark ? '#162238' : '#ffffff');
   let replicaTextPrimary = $derived(isDark ? '#f8fafc' : '#0f172a');
-  let replicaTextMuted = $derived(isDark ? '#94a3b8' : '#64748b');
-  let lagBadgeBg = $derived(isDark ? '#0b1220' : '#ffffff');
-  let lagBadgeBorder = $derived(isDark ? '#1c2b44' : '#e2e8f0');
+  let replicaTextMuted = $derived(isDark ? '#cbd5e1' : '#64748b');
+  let lagBadgeBg = $derived(isDark ? '#0d1527' : '#ffffff');
+  let lagBadgeBorder = $derived(isDark ? '#243552' : '#e2e8f0');
 </script>
 
 <section class="view-panel active" id="viewTopology">

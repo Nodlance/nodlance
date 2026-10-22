@@ -30,7 +30,7 @@ services:
       NODLANCE_ADMIN_PASSWORD: "adminpassword"
       NODLANCE_STATIC_DIR: "/app/ui/dist"
     ports:
-      - "8080:8080"
+      - "${PORT:-8090}:8080"
     restart: unless-stopped
     read_only: true
     security_opt:

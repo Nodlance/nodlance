@@ -601,46 +601,70 @@
         <p class="step-desc">Deploy and configure high-performance traffic routing, connection pooling, or Virtual IP failover for your database fleet.</p>
 
         <div class="form-group">
-          <label class="form-label" for="lb-type-select">Router Technology</label>
-          <div class="engine-selector">
+          <label class="form-label" for="lb-type-select">Select Router Technology</label>
+          <div class="engine-selector" id="lb-type-select">
             <button
               class="engine-card {lbType === 'proxysql' ? 'selected' : ''}"
               onclick={() => handleLbTypeChange('proxysql')}
               type="button"
             >
-              <span class="engine-title">ProxySQL</span>
-              <span class="engine-sub">MySQL R/W Split & Hostgroups</span>
+              <div class="engine-card-header">
+                <span class="engine-card-badge proxysql">ProxySQL</span>
+                {#if lbType === 'proxysql'}
+                  <span class="engine-active-tag">✓ Active</span>
+                {/if}
+              </div>
+              <span class="engine-title">ProxySQL Core Router</span>
+              <span class="engine-sub">MySQL R/W split, hostgroup pooling (10/20) & high-throughput multiplexing</span>
             </button>
             <button
               class="engine-card {lbType === 'pgbouncer' ? 'selected' : ''}"
               onclick={() => handleLbTypeChange('pgbouncer')}
               type="button"
             >
-              <span class="engine-title">PgBouncer</span>
-              <span class="engine-sub">PostgreSQL Connection Pooling</span>
+              <div class="engine-card-header">
+                <span class="engine-card-badge pgbouncer">PgBouncer</span>
+                {#if lbType === 'pgbouncer'}
+                  <span class="engine-active-tag">✓ Active</span>
+                {/if}
+              </div>
+              <span class="engine-title">PgBouncer Pooler</span>
+              <span class="engine-sub">PostgreSQL transaction-level pooling, SCRAM authentication & low memory overhead</span>
             </button>
             <button
               class="engine-card {lbType === 'keepalived' ? 'selected' : ''}"
               onclick={() => handleLbTypeChange('keepalived')}
               type="button"
             >
-              <span class="engine-title">Keepalived</span>
-              <span class="engine-sub">Virtual IP (VRRP) Failover</span>
+              <div class="engine-card-header">
+                <span class="engine-card-badge keepalived">Keepalived</span>
+                {#if lbType === 'keepalived'}
+                  <span class="engine-active-tag">✓ Active</span>
+                {/if}
+              </div>
+              <span class="engine-title">Keepalived Virtual IP (VIP)</span>
+              <span class="engine-sub">VRRP floating IP failover with health scripts & zero application config change</span>
             </button>
             <button
               class="engine-card {lbType === 'haproxy' ? 'selected' : ''}"
               onclick={() => handleLbTypeChange('haproxy')}
               type="button"
             >
-              <span class="engine-title">HAProxy</span>
-              <span class="engine-sub">Layer-4 TCP Load Balancer</span>
+              <div class="engine-card-header">
+                <span class="engine-card-badge haproxy">HAProxy</span>
+                {#if lbType === 'haproxy'}
+                  <span class="engine-active-tag">✓ Active</span>
+                {/if}
+              </div>
+              <span class="engine-title">HAProxy Layer-4 Balancer</span>
+              <span class="engine-sub">Generic TCP routing, weighted round-robin balancing & backend health probes</span>
             </button>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="lb-name-input">Instance Name</label>
-          <input id="lb-name-input" class="form-input" type="text" bind:value={lbName} />
+          <label class="form-label" for="lb-name-input">Instance Identifier</label>
+          <input id="lb-name-input" class="form-input" type="text" bind:value={lbName} placeholder="e.g. ProxySQL Production Router" />
         </div>
 
         <div class="form-group">
@@ -654,17 +678,17 @@
 
         <div class="form-row">
           <div class="form-group flex-1">
-            <label class="form-label" for="lb-host-input">Host Node / IP</label>
-            <input id="lb-host-input" class="form-input" type="text" bind:value={lbHost} />
+            <label class="form-label" for="lb-host-input">Host Node / IP Address</label>
+            <input id="lb-host-input" class="form-input font-mono" type="text" bind:value={lbHost} placeholder="192.168.10.x" />
           </div>
           <div class="form-group" style="width: 140px;">
-            <label class="form-label" for="lb-listen-port">Listen Port</label>
-            <input id="lb-listen-port" class="form-input" type="number" bind:value={lbListenPort} />
+            <label class="form-label" for="lb-listen-port">Client Port</label>
+            <input id="lb-listen-port" class="form-input font-mono" type="number" bind:value={lbListenPort} />
           </div>
-          {#if lbType === 'proxysql' || lbType === 'pgbouncer'}
+          {#if lbType === 'proxysql' || lbType === 'pgbouncer' || lbType === 'haproxy'}
             <div class="form-group" style="width: 140px;">
               <label class="form-label" for="lb-admin-port">Admin Port</label>
-              <input id="lb-admin-port" class="form-input" type="number" bind:value={lbAdminPort} />
+              <input id="lb-admin-port" class="form-input font-mono" type="number" bind:value={lbAdminPort} />
             </div>
           {/if}
         </div>

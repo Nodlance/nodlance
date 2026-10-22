@@ -11,6 +11,9 @@ FROM rust:1-bookworm AS builder
 WORKDIR /src
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY crates crates
+ENV CARGO_PROFILE_RELEASE_DEBUG=0
+ENV CARGO_PROFILE_RELEASE_STRIP=true
+ENV CARGO_INCREMENTAL=0
 RUN cargo build --release --locked -p nodlance-api
 
 # Stage 3: Minimal secure runtime
