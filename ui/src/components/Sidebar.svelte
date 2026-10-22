@@ -13,6 +13,11 @@
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><circle cx="6" cy="19" r="3"/><circle cx="18" cy="19" r="3"/><path d="M12 8v4"/><path d="m6.8 16.2 3.4-3.4"/><path d="m17.2 16.2-3.4-3.4"/></svg>
       <span>Topology & Nodes</span>
     </button>
+    <button class="nav-item {$activeView === 'load-balancers' ? 'active' : ''}" onclick={() => switchView('load-balancers')}>
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="m9 9 6 6"/><path d="m15 9-6 6"/></svg>
+      <span>Load Balancers</span>
+      <span class="nav-badge">Proxy</span>
+    </button>
     <button class="nav-item {$activeView === 'ha-recovery' ? 'active' : ''}" onclick={() => switchView('ha-recovery')}>
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
       <span>HA & Recovery</span>

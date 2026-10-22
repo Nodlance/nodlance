@@ -183,6 +183,31 @@ pub fn build_app(state: AppState) -> Router {
             "/api/v1/recovery/fault-injection",
             post(routes::recovery::run_fault_injection),
         )
+        // Load Balancers & Proxies (ProxySQL, PgBouncer, HAProxy, Keepalived)
+        .route(
+            "/api/v1/load-balancers",
+            get(routes::load_balancers::list_load_balancers)
+                .post(routes::load_balancers::create_load_balancer),
+        )
+        .route(
+            "/api/v1/load-balancers/{id}",
+            get(routes::load_balancers::get_load_balancer)
+                .put(routes::load_balancers::update_load_balancer)
+                .delete(routes::load_balancers::delete_load_balancer),
+        )
+        .route(
+            "/api/v1/load-balancers/{id}/reload",
+            post(routes::load_balancers::reload_load_balancer),
+        )
+        // Galera Cluster & Garbd Arbitrator
+        .route(
+            "/api/v1/clusters/{id}/galera/status",
+            get(routes::galera::get_galera_status),
+        )
+        .route(
+            "/api/v1/clusters/{id}/galera/arbitrator",
+            post(routes::galera::generate_arbitrator_config),
+        )
         .fallback_service(serve_dir)
         .with_state(state)
 }
@@ -196,6 +221,7 @@ mod tests {
     };
     use http_body_util::BodyExt;
     use tower::ServiceExt;
+    use uuid::Uuid;
 
     #[tokio::test]
     async fn liveness_endpoint_returns_ok() {
@@ -373,6 +399,48 @@ mod tests {
         let request = Request::builder()
             .method("POST")
             .uri("/api/v1/recovery/fault-injection")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn load_balancers_endpoints_require_authorization() {
+        let app = build_app(AppState::new_test());
+
+        let request = Request::builder()
+            .uri("/api/v1/load-balancers")
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .clone()
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let request = Request::builder()
+            .method("POST")
+            .uri(format!("/api/v1/load-balancers/{}/reload", Uuid::now_v7()))
+            .body(Body::empty())
+            .unwrap_or_else(|error| panic!("failed to build request: {error}"));
+        let response = app
+            .oneshot(request)
+            .await
+            .unwrap_or_else(|error| panic!("router failed: {error}"));
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn galera_endpoints_require_authorization() {
+        let app = build_app(AppState::new_test());
+
+        let request = Request::builder()
+            .uri(format!("/api/v1/clusters/{}/galera/status", Uuid::now_v7()))
             .body(Body::empty())
             .unwrap_or_else(|error| panic!("failed to build request: {error}"));
         let response = app

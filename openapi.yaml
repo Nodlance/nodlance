@@ -1251,6 +1251,175 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/v1/load-balancers:
+    get:
+      summary: List load balancers
+      description: Returns a list of registered load balancers (ProxySQL, PgBouncer, HAProxy, Keepalived).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cluster_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: host_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: lb_type
+          in: query
+          schema:
+            type: string
+            enum: [proxysql, pgbouncer, haproxy, keepalived]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, standby, degraded, error, maintenance]
+      responses:
+        '200':
+          description: List of load balancers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LoadBalancer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Register load balancer
+      description: Registers a new managed load balancer or connection router.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewLoadBalancer'
+      responses:
+        '201':
+          description: Load balancer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadBalancer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/load-balancers/{id}:
+    get:
+      summary: Get load balancer details
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Load balancer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadBalancer'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update load balancer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLoadBalancer'
+      responses:
+        '200':
+          description: Updated load balancer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadBalancer'
+    delete:
+      summary: Delete load balancer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Load balancer removed
+
+  /api/v1/load-balancers/{id}/reload:
+    post:
+      summary: Reload load balancer configuration
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Configuration regenerated and synchronized
+
+  /api/v1/clusters/{id}/galera/status:
+    get:
+      summary: Get Galera cluster state and quorum
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Galera cluster telemetry, wsrep states, and arbitrator recommendation
+
+  /api/v1/clusters/{id}/galera/arbitrator:
+    post:
+      summary: Generate Garbd arbitrator daemon configuration
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Garbd environment configuration and systemd service unit
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2209,6 +2378,73 @@ components:
         latest_epoch_record:
           $ref: '#/components/schemas/ClusterEpoch'
           nullable: true
+
+    LoadBalancer:
+      type: object
+      required: [id, cluster_id, host_id, lb_type, listen_port, status, config_snapshot, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        cluster_id:
+          type: string
+          format: uuid
+        host_id:
+          type: string
+          format: uuid
+        lb_type:
+          type: string
+          enum: [proxysql, pgbouncer, haproxy, keepalived]
+        listen_port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        admin_port:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [active, standby, degraded, error, maintenance]
+        config_snapshot:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    NewLoadBalancer:
+      type: object
+      required: [cluster_id, host_id, lb_type, listen_port]
+      properties:
+        cluster_id:
+          type: string
+          format: uuid
+        host_id:
+          type: string
+          format: uuid
+        lb_type:
+          type: string
+          enum: [proxysql, pgbouncer, haproxy, keepalived]
+        listen_port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        admin_port:
+          type: integer
+          nullable: true
+        config_snapshot:
+          type: object
+
+    UpdateLoadBalancer:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, standby, degraded, error, maintenance]
+        config_snapshot:
+          type: object
 
 
 

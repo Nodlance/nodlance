@@ -364,3 +364,63 @@ export const INITIAL_PLANS = [
     created: 'Today, 10:30 AM'
   }
 ];
+
+export const INITIAL_LOAD_BALANCERS = [
+  {
+    id: 'lb_pxsql_01',
+    name: 'ProxySQL Core Router',
+    clusterId: 'c1a7002-my80-prod',
+    clusterName: 'core-mysql-ecommerce',
+    type: 'proxysql',
+    host: 'proxy-01.prod.internal',
+    ip: '192.168.20.15',
+    listenPort: 6033,
+    adminPort: 6032,
+    status: 'active',
+    mode: 'Read/Write Split (HG 10/20)',
+    writers: '1 (mysql-master-01)',
+    readers: '2 (mysql-replica-01, mysql-replica-02)',
+    qps: 18450,
+    activeConnections: 312,
+    cacheHitRatio: '98.8%',
+    updated: 'Just now'
+  },
+  {
+    id: 'lb_pgb_01',
+    name: 'PgBouncer Transaction Pooler',
+    clusterId: 'c1a7001-pg16-prod',
+    clusterName: 'prod-pg16-ha-primary',
+    type: 'pgbouncer',
+    host: 'db-pg-node-01.prod.internal',
+    ip: '192.168.10.21',
+    listenPort: 6432,
+    adminPort: 6433,
+    status: 'active',
+    mode: 'Transaction Pooling',
+    writers: '1 (db-pg-node-01)',
+    readers: '2 (db-pg-node-02, db-pg-node-03)',
+    qps: 12100,
+    activeConnections: 640,
+    cacheHitRatio: '99.2%',
+    updated: '2m ago'
+  },
+  {
+    id: 'lb_vrrp_01',
+    name: 'Keepalived Virtual IP (VIP)',
+    clusterId: 'c1a7001-pg16-prod',
+    clusterName: 'prod-pg16-ha-primary',
+    type: 'keepalived',
+    host: 'db-pg-node-01.prod.internal',
+    ip: '192.168.10.100 (VIP)',
+    listenPort: 5432,
+    adminPort: null,
+    status: 'active',
+    mode: 'VRRP Master (VRID 51)',
+    writers: 'Primary Node 192.168.10.21',
+    readers: 'VRRP Standby on Node 02',
+    qps: 12100,
+    activeConnections: 640,
+    cacheHitRatio: '100%',
+    updated: 'Just now'
+  }
+];

@@ -8,7 +8,8 @@ import {
   INITIAL_ALERTS,
   INITIAL_AUDIT,
   INITIAL_FENCING,
-  INITIAL_PLANS
+  INITIAL_PLANS,
+  INITIAL_LOAD_BALANCERS
 } from './data.js';
 
 // --- Theme Store (Light default, Dark optional) ---
@@ -57,6 +58,7 @@ export const alerts = writable(JSON.parse(JSON.stringify(INITIAL_ALERTS)));
 export const audit = writable(JSON.parse(JSON.stringify(INITIAL_AUDIT)));
 export const fencing = writable(JSON.parse(JSON.stringify(INITIAL_FENCING)));
 export const plans = writable(JSON.parse(JSON.stringify(INITIAL_PLANS)));
+export const loadBalancers = writable(JSON.parse(JSON.stringify(INITIAL_LOAD_BALANCERS)));
 
 // --- Toasts ---
 export const toasts = writable([]);
@@ -313,6 +315,61 @@ export function deployNewCluster(wizData) {
 
   showToast(`Cluster ${newCluster.name} provisioned with guarded reverse rollback!`, 'success');
   activeView.set('topology');
+}
+
+// Load Balancer Actions
+export async function reloadLoadBalancer(id) {
+  try {
+    const res = await fetch(`/api/v1/load-balancers/${id}/reload`, { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(data.message || 'Load balancer configuration reloaded and synchronized!', 'success');
+    }
+  } catch (_) {
+    // Demo fallback
+  }
+
+  loadBalancers.update(list => list.map(lb => lb.id === id ? { ...lb, status: 'active', updated: 'Just now' } : lb));
+  showToast('Proxy rules synchronized to runtime and disk!', 'success');
+
+  audit.update(a => [
+    {
+      id: `aud_${Date.now().toString(16).slice(-4)}`,
+      time: new Date().toISOString().slice(11, 19) + ' UTC',
+      actor: 'admin (Superadmin)',
+      action: 'LOAD_BALANCER_RELOAD',
+      target: `LB ${id}`,
+      status: 'SUCCESS',
+      ip: '10.0.4.12'
+    },
+    ...a
+  ]);
+}
+
+export function createLoadBalancer(lbData) {
+  const newLb = {
+    id: `lb_${Date.now().toString(16).slice(-6)}`,
+    name: lbData.name || 'New Load Balancer',
+    clusterId: lbData.clusterId || 'c1a7001-pg16-prod',
+    clusterName: lbData.clusterName || 'prod-pg16-ha-primary',
+    type: lbData.type || 'proxysql',
+    host: lbData.host || 'node-01.internal',
+    ip: lbData.ip || '192.168.10.50',
+    listenPort: parseInt(lbData.listenPort, 10) || 6033,
+    adminPort: lbData.adminPort ? parseInt(lbData.adminPort, 10) : null,
+    status: 'active',
+    mode: lbData.type === 'proxysql' ? 'Read/Write Split (HG 10/20)' : (lbData.type === 'pgbouncer' ? 'Transaction Pooling' : 'VRRP Master'),
+    writers: 'Primary Node',
+    readers: 'Replica Pool',
+    qps: 0,
+    activeConnections: 0,
+    cacheHitRatio: '100%',
+    updated: 'Just now'
+  };
+
+  loadBalancers.update(l => [newLb, ...l]);
+  showToast(`Load balancer ${newLb.name} (${newLb.type}) deployed successfully!`, 'success');
+  activeModal.set(null);
 }
 
 // Live API Poll

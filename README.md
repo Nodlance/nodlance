@@ -165,7 +165,7 @@ See [`openapi.yaml`](openapi.yaml) for full schema details.
 5. **Stage 4 — Provisioning:** guarded deployment providers for supported Linux environments.
 6. **Stage 5 — Recovery & HA:** operator-approved promotion workflows; automatic failover after safety gates.
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) and [`docs/PRD.md`](docs/PRD.md).
+See [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/PRD.md`](docs/PRD.md), and the comprehensive Severalnines parity plan in [`docs/CLUSTERCONTROL-PARITY-PLAN.md`](docs/CLUSTERCONTROL-PARITY-PLAN.md).
 
 ## Contributing
 

@@ -3,8 +3,8 @@
 use nodlance_db::{
     PgAgentRepository, PgAlertRepository, PgAuditRepository, PgBackupRepository,
     PgClusterRepository, PgDiscoveryRepository, PgHeartbeatRepository, PgHostRepository,
-    PgJobRepository, PgObservationRepository, PgProvisioningRepository, PgRecoveryRepository,
-    PgUserRepository,
+    PgJobRepository, PgLoadBalancerRepository, PgObservationRepository, PgProvisioningRepository,
+    PgRecoveryRepository, PgUserRepository,
 };
 use sqlx::PgPool;
 
@@ -25,6 +25,7 @@ pub struct AppState {
     pub provisioning_repo: PgProvisioningRepository,
     pub discovery_repo: PgDiscoveryRepository,
     pub recovery_repo: PgRecoveryRepository,
+    pub load_balancer_repo: PgLoadBalancerRepository,
 }
 
 impl AppState {
@@ -43,6 +44,7 @@ impl AppState {
             provisioning_repo: PgProvisioningRepository::new(pool.clone()),
             discovery_repo: PgDiscoveryRepository::new(pool.clone()),
             recovery_repo: PgRecoveryRepository::new(pool.clone()),
+            load_balancer_repo: PgLoadBalancerRepository::new(pool.clone()),
             db: Some(pool),
             jwt_secret,
         }
@@ -68,6 +70,7 @@ impl AppState {
             provisioning_repo: PgProvisioningRepository::new(pool.clone()),
             discovery_repo: PgDiscoveryRepository::new(pool.clone()),
             recovery_repo: PgRecoveryRepository::new(pool.clone()),
+            load_balancer_repo: PgLoadBalancerRepository::new(pool.clone()),
             db: None,
             jwt_secret: "test-secret-key-that-is-at-least-32-bytes-long".to_string(),
         }

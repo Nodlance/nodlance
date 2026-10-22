@@ -57,3 +57,9 @@
 - [x] Host inventory and agent management with one-line installation command generator
 - [x] Incident alarm acknowledgment flow and tamper-evident audit log trail
 
+## Stage 7 & Beyond — Severalnines ClusterControl Comprehensive Parity
+
+For the detailed multi-phase architecture, gap analysis, and implementation plan covering ProxySQL, Keepalived VRRP, Galera, Point-in-Time Recovery (PITR), Wasm DBA Advisors, Centralized Configuration, mTLS PKI, and AI Model Context Protocol (MCP) Server, see:
+- [CLUSTERCONTROL-PARITY-PLAN.md](file:///Users/administrator/Documents/projects/nodlance-foundation/docs/CLUSTERCONTROL-PARITY-PLAN.md)
+
+

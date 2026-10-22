@@ -6,6 +6,7 @@
   import FleetView from './components/FleetView.svelte';
   import TopologyView from './components/TopologyView.svelte';
   import HaRecoveryView from './components/HaRecoveryView.svelte';
+  import LoadBalancersView from './components/LoadBalancersView.svelte';
   import BackupsView from './components/BackupsView.svelte';
   import ProvisioningView from './components/ProvisioningView.svelte';
   import DiscoveryView from './components/DiscoveryView.svelte';
@@ -40,6 +41,8 @@
       <FleetView />
     {:else if $activeView === 'topology'}
       <TopologyView />
+    {:else if $activeView === 'load-balancers'}
+      <LoadBalancersView />
     {:else if $activeView === 'ha-recovery'}
       <HaRecoveryView />
     {:else if $activeView === 'backups'}

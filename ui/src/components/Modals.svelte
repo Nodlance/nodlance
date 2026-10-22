@@ -10,6 +10,7 @@
     triggerClusterBackup,
     runDiscoveryScan,
     deployNewCluster,
+    createLoadBalancer,
     showToast
   } from '../lib/stores.js';
 
@@ -22,6 +23,49 @@
   let wizNodeCount = $state(3);
   let wizPort = $state(5432);
   let isDeploying = $state(false);
+
+  // --- Load Balancer Modal State ---
+  let lbName = $state('ProxySQL Production Router');
+  let lbType = $state('proxysql');
+  let lbClusterId = $state('c1a7001-pg16-prod');
+  let lbHost = $state('192.168.10.30');
+  let lbListenPort = $state(6033);
+  let lbAdminPort = $state(6032);
+
+  function handleLbTypeChange(type) {
+    lbType = type;
+    if (type === 'proxysql') {
+      lbName = 'ProxySQL Core Router';
+      lbListenPort = 6033;
+      lbAdminPort = 6032;
+    } else if (type === 'pgbouncer') {
+      lbName = 'PgBouncer Pooler';
+      lbListenPort = 6432;
+      lbAdminPort = 6433;
+    } else if (type === 'keepalived') {
+      lbName = 'Keepalived VIP Daemon';
+      lbListenPort = 5432;
+      lbAdminPort = null;
+    } else if (type === 'haproxy') {
+      lbName = 'HAProxy TCP Balancer';
+      lbListenPort = 5000;
+      lbAdminPort = 9000;
+    }
+  }
+
+  function submitLoadBalancer() {
+    const selectedCluster = $clusters.find(c => c.id === lbClusterId);
+    createLoadBalancer({
+      name: lbName,
+      type: lbType,
+      clusterId: lbClusterId,
+      clusterName: selectedCluster ? selectedCluster.name : 'Target Cluster',
+      host: lbHost,
+      ip: lbHost,
+      listenPort: lbListenPort,
+      adminPort: lbAdminPort,
+    });
+  }
 
   // --- Failover State ---
   let selectedCandidateId = $state('');
@@ -505,6 +549,102 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick={closeModal}>Close</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- 7. Deploy Load Balancer Modal -->
+{#if $activeModal === 'deployLoadBalancer'}
+  <div
+    class="modal-backdrop open"
+    onclick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+    onkeydown={(e) => { if (e.key === 'Escape') closeModal(); }}
+    role="dialog"
+    tabindex="-1"
+  >
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Deploy Database Load Balancer / VIP</h2>
+        <button class="modal-close-btn" onclick={closeModal}>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="step-desc">Deploy and configure high-performance traffic routing, connection pooling, or Virtual IP failover for your database fleet.</p>
+
+        <div class="form-group">
+          <label class="form-label" for="lb-type-select">Router Technology</label>
+          <div class="engine-selector">
+            <button
+              class="engine-card {lbType === 'proxysql' ? 'selected' : ''}"
+              onclick={() => handleLbTypeChange('proxysql')}
+              type="button"
+            >
+              <span class="engine-title">ProxySQL</span>
+              <span class="engine-sub">MySQL R/W Split & Hostgroups</span>
+            </button>
+            <button
+              class="engine-card {lbType === 'pgbouncer' ? 'selected' : ''}"
+              onclick={() => handleLbTypeChange('pgbouncer')}
+              type="button"
+            >
+              <span class="engine-title">PgBouncer</span>
+              <span class="engine-sub">PostgreSQL Connection Pooling</span>
+            </button>
+            <button
+              class="engine-card {lbType === 'keepalived' ? 'selected' : ''}"
+              onclick={() => handleLbTypeChange('keepalived')}
+              type="button"
+            >
+              <span class="engine-title">Keepalived</span>
+              <span class="engine-sub">Virtual IP (VRRP) Failover</span>
+            </button>
+            <button
+              class="engine-card {lbType === 'haproxy' ? 'selected' : ''}"
+              onclick={() => handleLbTypeChange('haproxy')}
+              type="button"
+            >
+              <span class="engine-title">HAProxy</span>
+              <span class="engine-sub">Layer-4 TCP Load Balancer</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="lb-name-input">Instance Name</label>
+          <input id="lb-name-input" class="form-input" type="text" bind:value={lbName} />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="lb-cluster-select">Target Database Cluster</label>
+          <select id="lb-cluster-select" class="form-input" bind:value={lbClusterId}>
+            {#each $clusters as c}
+              <option value={c.id}>{c.name} ({c.engineName})</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label" for="lb-host-input">Host Node / IP</label>
+            <input id="lb-host-input" class="form-input" type="text" bind:value={lbHost} />
+          </div>
+          <div class="form-group" style="width: 140px;">
+            <label class="form-label" for="lb-listen-port">Listen Port</label>
+            <input id="lb-listen-port" class="form-input" type="number" bind:value={lbListenPort} />
+          </div>
+          {#if lbType === 'proxysql' || lbType === 'pgbouncer'}
+            <div class="form-group" style="width: 140px;">
+              <label class="form-label" for="lb-admin-port">Admin Port</label>
+              <input id="lb-admin-port" class="form-input" type="number" bind:value={lbAdminPort} />
+            </div>
+          {/if}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick={closeModal}>Cancel</button>
+        <button class="btn btn-primary" onclick={submitLoadBalancer}>
+          Deploy Load Balancer
+        </button>
       </div>
     </div>
   </div>

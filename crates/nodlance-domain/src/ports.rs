@@ -24,6 +24,7 @@ use crate::{
         ClusterEpoch, FencingExecution, FencingStatus, FencingType, NewPromotionRequest,
         PromotionRequest, UpdatePromotionParams,
     },
+    load_balancer::{LoadBalancer, LoadBalancerFilter, NewLoadBalancer, UpdateLoadBalancer},
     user::{NewUser, Permission, Role, User},
 };
 
@@ -436,4 +437,33 @@ pub trait FencingProvider: Send + Sync {
         &self,
         execution_id: Uuid,
     ) -> impl Future<Output = Result<bool, DomainError>> + Send;
+}
+
+/// Port for load balancer and connection router persistence operations.
+pub trait LoadBalancerRepository: Send + Sync {
+    fn create(
+        &self,
+        new_lb: &NewLoadBalancer,
+    ) -> impl Future<Output = Result<LoadBalancer, DomainError>> + Send;
+
+    fn get_by_id(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<Option<LoadBalancer>, DomainError>> + Send;
+
+    fn list(
+        &self,
+        filter: &LoadBalancerFilter,
+    ) -> impl Future<Output = Result<Vec<LoadBalancer>, DomainError>> + Send;
+
+    fn update(
+        &self,
+        id: Uuid,
+        update: &UpdateLoadBalancer,
+    ) -> impl Future<Output = Result<LoadBalancer, DomainError>> + Send;
+
+    fn delete(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<(), DomainError>> + Send;
 }

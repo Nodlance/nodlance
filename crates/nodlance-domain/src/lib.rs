@@ -9,9 +9,11 @@ pub mod backup;
 pub mod cluster;
 pub mod engine;
 pub mod error;
+pub mod galera;
 pub mod heartbeat;
 pub mod host;
 pub mod job;
+pub mod load_balancer;
 pub mod metrics;
 pub mod observation;
 pub mod ports;
@@ -32,15 +34,24 @@ pub use backup::{
 pub use cluster::{Cluster, DatabaseNode, NewCluster, NewDatabaseNode};
 pub use engine::{DatabaseEngine, JobStatus, NodeHealth, NodeRole};
 pub use error::DomainError;
+pub use galera::{
+    GaleraArbitratorConfig, GaleraObservation, SstMethod, WsrepClusterStatus, WsrepLocalState,
+};
 pub use heartbeat::{AgentHeartbeat, HeartbeatPayload};
 pub use host::{Host, HostFilter, HostStatus, NewHost, UpdateHost};
 pub use job::{Job, JobAttempt, JobType, NewJob};
+pub use load_balancer::{
+    HaProxyConfig, KeepalivedConfig, LoadBalancer, LoadBalancerConfigSnapshot, LoadBalancerFilter,
+    LoadBalancerStatus, LoadBalancerType, NewLoadBalancer, PgBouncerConfig, PgBouncerPoolMode,
+    ProxySqlBackendServer, ProxySqlConfig, ProxySqlQueryRule, UpdateLoadBalancer,
+};
 pub use metrics::HostMetrics;
 pub use observation::{ClusterTopology, NodeObservation};
 pub use ports::{
     AgentRepository, AlertRepository, AuditRepository, BackupRepository, ClusterRepository,
     DiscoveryRepository, FencingProvider, HeartbeatRepository, HostRepository, JobRepository,
-    ObservationRepository, ProvisioningRepository, RecoveryRepository, UserRepository,
+    LoadBalancerRepository, ObservationRepository, ProvisioningRepository, RecoveryRepository,
+    UserRepository,
 };
 pub use provisioning::{
     DiscoveredWorkload, NewDiscoveredWorkload, NewProvisioningPlan, ProviderType,

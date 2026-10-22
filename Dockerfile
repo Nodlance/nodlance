@@ -15,11 +15,9 @@ RUN cargo build --release --locked -p nodlance-api
 
 # Stage 3: Minimal secure runtime
 FROM debian:bookworm-slim AS runtime
-RUN useradd --system --uid 10001 --create-home nodlance \
-    && apt-get update \
-    && apt-get install --yes --no-install-recommends ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+RUN useradd --system --uid 10001 --create-home nodlance
 WORKDIR /app
+COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 COPY --from=builder /src/target/release/nodlance-api /usr/local/bin/nodlance-api
 COPY --from=ui-builder /app/ui/dist /app/ui/dist
 USER 10001:10001
