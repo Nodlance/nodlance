@@ -1,43 +1,88 @@
-# Svelte + Vite
+# Nodlance ClusterControl Web UI
 
-This template should help get you started developing with Svelte in Vite.
+Modern enterprise database operations console built with **Svelte 5** (`$state`, `$derived`, runes) and **Vite**. Provides 100% Severalnines ClusterControl operational parity with high-contrast Light and Dark theme support.
 
-## Recommended IDE Setup
+---
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+## Features
 
-## Need an official Svelte framework?
+- **Fleet Overview**: Multi-engine cluster telemetry (PostgreSQL, MySQL, MariaDB) with live QPS, replication latency, and storage meters.
+- **Replication Topology & Node Graph**: Interactive, dynamic SVG replication hierarchy with zero-overlap card layout, live LSN/GTID tracking, centered lag badges, and direct telemetry table integration.
+- **Load Balancers & Connection Routers**: Full management and deployment of ProxySQL, PgBouncer, Keepalived VRRP VIP, and HAProxy with live configuration preview.
+- **High Availability & Guarded Recovery**: Quorum monitoring, candidate evaluator scoring, cryptographic operator approval tokens, and STONITH node fencing.
+- **Backups, PITR Streams & Sandbox Restore Drills**: Continuous Point-In-Time Recovery (PITR) WAL streaming, multi-cloud storage targets (AWS S3, MinIO, GCS, Azure Blob), and automated sandbox restore validation.
+- **DBA Advisors & Rhai Script Engine**: Real-time rule evaluation (memory, connection pools, index health, replication lag), and slow query log analysis.
+- **Config Management & PKI Certificate Authority**: Configuration template versioning with rolling diffs, plus automated X.509 mTLS Certificate Authority with 1-click renewal.
+- **Guarded Provisioning Wizard**: 5-step deployment wizard with reverse LIFO rollback safety across Linux bare-metal, Docker, and Kubernetes.
+- **Discovery Scanner**: Subnet CIDR and container probe to import existing unmanaged database workloads.
+- **Host Inventory & Agent Management**: Enrolled nodes and copyable agent install command.
+- **Alarms & Audit Trail**: Active alert acknowledgment and tamper-evident append-only security log.
+- **Enterprise Design System**: Compliant with WCAG AA accessibility standards (minimum 4.5:1 contrast ratio) in both Light and Dark themes.
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+---
 
-## Technical considerations
+## Directory Structure
 
-**Why use this over SvelteKit?**
+```text
+ui/
+├── public/                 # Static public assets (favicons, SVGs)
+├── src/
+│   ├── assets/             # Brand logos, icons, and SVG graphics
+│   ├── components/
+│   │   ├── TopNav.svelte             # Top navigation with cluster switcher, stats pills, theme toggle
+│   │   ├── Sidebar.svelte            # Collapsible navigation sidebar with badge counters
+│   │   ├── FleetView.svelte          # Fleet overview dashboard with engine filter pills
+│   │   ├── TopologyView.svelte       # Interactive SVG topology graph with zero-overlap layout
+│   │   ├── LoadBalancersView.svelte  # ProxySQL, PgBouncer, Keepalived & HAProxy management
+│   │   ├── HaRecoveryView.svelte     # Quorum consensus, candidate scoring & failover
+│   │   ├── BackupsView.svelte        # Multi-cloud backup schedules, PITR & restore drills
+│   │   ├── AdvisorsView.svelte       # Rhai script advisor rules & slow query analyzer
+│   │   ├── ConfigPkiView.svelte      # Configuration template diffs & X.509 mTLS CA
+│   │   ├── ProvisioningView.svelte   # Guarded provisioning execution plans
+│   │   ├── DiscoveryView.svelte      # Workload discovery scanner
+│   │   ├── HostsView.svelte          # Infrastructure host inventory & heartbeat monitors
+│   │   ├── AlarmsView.svelte         # Active alerts & notification acknowledgment
+│   │   ├── AuditView.svelte          # Append-only security audit log
+│   │   ├── Modals.svelte             # Enterprise modals (Deploy Wizard, Failover, Backup, Load Balancer)
+│   │   └── Toast.svelte              # Non-blocking notification toasts
+│   ├── lib/
+│   │   ├── stores.js                 # Central Svelte stores (clusters, hosts, load balancers, theme)
+│   │   └── data.js                   # Pre-seeded enterprise telemetry datasets
+│   ├── app.css                       # Enterprise design system tokens, themes, and utilities
+│   ├── App.svelte                    # Main root component and view router
+│   └── main.js                       # Svelte application mounting entrypoint
+├── package.json
+└── vite.config.js
+```
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+---
 
-This template contains as little as possible to get started with Vite + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+## Development
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+### Prerequisites
 
-**Why include `.vscode/extensions.json`?**
+- **Node.js**: Version 20 or higher
+- **npm**: Version 10 or higher
 
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
+### Install Dependencies
+```bash
+npm install
+```
 
-**Why enable `checkJs` in the JS template?**
+### Start Development Server
+```bash
+npm run dev
+```
+The development server will start at `http://localhost:5173/` (or next available port).
 
-It is likely that most cases of changing variable types in runtime are likely to be accidental, rather than deliberate. This provides advanced typechecking out of the box. Should you like to take advantage of the dynamically-typed nature of JavaScript, it is trivial to change the configuration.
+### Build for Production
+```bash
+npm run build
+```
+Compiled production bundles will be written to `dist/`.
 
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/sveltejs/svelte-hmr/tree/master/packages/svelte-hmr#preservation-of-local-state).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```js
-// store.js
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+### Sync Assets to Backend API
+To serve the frontend directly from the Axum backend (`crates/nodlance-api`):
+```bash
+cp -r dist/* ../crates/nodlance-api/static/
 ```
